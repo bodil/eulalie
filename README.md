@@ -6,7 +6,7 @@ ES6 flavoured parser combinators.
 
 ## Documentation
 
-Read the [API documentation](./doc/eulalie/1.0.0/index.html).
+Read the [API documentation](http://bodil.org/eulalie/).
 
 ## Usage
 
