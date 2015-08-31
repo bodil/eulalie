@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3>eulalie 1.0.0</h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>eulalie</h1><p><a href="https://travis-ci.org/bodil/eulalie"><img src="https://travis-ci.org/bodil/eulalie.svg" alt="Build Status"></a></p>
+<p>ES6 flavoured parser combinators.</p>
+<h2>Usage</h2><p>Eulalie works on the principle of constructing parsers from smaller
+parsers using various combinator functions.</p>
+<p>A parser is a function which takes an input <code>Stream</code>, and returns a
+<code>ParseResult</code> object if it matched the provided input, or a
+<code>ParseError</code> object if it didn't.</p>
+<h3>Data Types</h3><p>The <code>Stream</code> object just contains a string, and an index into this
+string. We use this structure instead of passing strings around as
+input because string operations are expensive, while any operation on
+the <code>Stream</code> object can be performed in linear time, and while many
+<code>Stream</code> objects will be created during a parse operation, we only
+ever keep a single copy of the string they wrap.</p>
+<p>A <code>ParseResult</code> contains four properties: the <code>value</code> we parsed (an
+arbitrary value), the <code>next</code> input to be parsed (a <code>Stream</code>), the
+point in the stream where we <code>start</code>ed parsing (also a <code>Stream</code>), and
+the substring that was <code>matched</code> by this parser (a string).</p>
+<p>Finally, a <code>ParseError</code> simply contains an <code>input</code> property (a
+<code>Stream</code>) which points to the exact position where the parsing failed,
+and an optional <code>message</code> (a string).</p>
+<h3>Parser Combinators</h3><p>The most basic parsers form the building blocks from which you can
+assemble more complex parsers:</p>
+<ul>
+<li><code>unit(value)</code> makes a parser which doesn't consume input, just
+returns the provided <code>value</code> wrapped in a <code>ParseResult</code>.</li>
+<li><code>fail</code> is a parser which consumes no input and returns a
+<code>ParseError</code>.</li>
+<li><code>item</code> is a parser which consumes one arbitrary character and
+returns it as a <code>ParseResult</code>.</li>
+</ul>
+<p>The two fundamental parser combinators are:</p>
+<ul>
+<li><p><code>seq(parser, next)</code> is used to combine multiple parsers in a
+sequence. It takes a parser, and a function <code>next(value)</code> which
+will be called with the result of the parser if it succeeded, and
+must return another parser, which will be run on the remaining
+input. The result of the combined parser will be the result of
+this last parser, or the first error encountered.</p>
+</li>
+<li><p><code>either(parser1, parser2)</code> makes a parser which will first try the
+first provided parser, and returns its result if it succeeds. If
+it fails, it will run the second parser on the same input, and
+return its result directly, whether or not it succeeded.</p>
+</li>
+</ul>
+<p>Using these, you can construct more advanced parser combinators. Some particularly useful combinators are predefined:</p>
+<ul>
+<li><code>sat(predicate)</code> makes a parser which will match one character
+only if the provided <code>predicate</code> function returns <code>true</code> for it.</li>
+<li><code>char(c)</code> makes a parser which matches the single character <code>c</code>.</li>
+<li><code>many(parser)</code> makes a parser which will match the provided
+<code>parser</code> zero or more times.</li>
+<li><code>many1(parser)</code> works just like <code>many</code>, but requires at minimum
+one match.</li>
+<li><code>string(s)</code> makes a parser which matches the literal string <code>s</code>.</li>
+</ul>
+<p>Other predefined parsers are <code>digit</code>, <code>space</code>, <code>alphanum</code>, <code>letter</code>,
+<code>upper</code> and <code>lower</code>, which match one character of their respective
+types, and their inverse counterparts, <code>notDigit</code>, <code>notSpace</code>,
+<code>notAlphanum</code>, <code>notLetter</code>, <code>notUpper</code> and <code>notLower</code>. There are also
+whitespace matchers <code>spaces</code> and <code>spaces1</code>, and their opposites,
+<code>notSpaces</code> and <code>notSpaces1</code>.</p>
+<h3>Generator Functions</h3><p>The basic combinators <code>seq</code> and <code>either</code> can also take a single
+generator function, which helps keep callback chains to a minimum. The
+job of this function is to <code>yield</code> parsers, which will pass their
+<code>ParseResult</code>s back to the generator. The final result value of the
+parser will be what you <code>return</code> from the generator function. This
+becomes very useful for the <code>seq</code> combinator:</p>
+<pre class="prettyprint source lang-js"><code>// without generators:
+p.seq(p.notSpaces1, (left) =>
+  p.seq(p.spaces1, () =>
+    p.seq(p.notSpaces1, (right) =>
+      p.unit({left, right}))));
+
+// with generators:
+p.seq(function*() {
+  const {value: left} = yield p.notSpaces1;
+  yield p.spaces1;
+  const {value: right} = yield p.notSpaces1;
+  return {left, right};
+});</code></pre><p>While you could also pass a generator to <code>either</code>, it will, unlike
+<code>seq</code>, accept any iterable, and just passing an array of parsers to
+try in sequence is generally better:</p>
+<pre class="prettyprint source lang-js"><code>p.either([
+  p.string(&quot;omg&quot;),
+  p.string(&quot;wtf&quot;),
+  p.string(&quot;bbq&quot;)
+]);</code></pre><p>The result will be the result of the first parser to succeed.</p>
+<p>If you do provide a generator function to <code>either</code>, <code>yield</code> will not
+receive any values, and what you <code>return</code> will be ignored in favour of
+the result of the first parser you <code>yield</code> to succeed. But, seriously,
+just use arrays instead.</p>
+<h3>A Working Example</h3><p>This is how you might write a parser for the first line of an HTTP
+request:</p>
+<pre class="prettyprint source lang-js"><code>import * as p from &quot;eulalie&quot;;
+
+// Combine a sequence of parsers into a bigger parser using a generator
+const parser = p.seq(function*() {
+  // Parse a sequence of 1 or more upper case letters
+  const {value: method} = yield p.many1(p.upper);
+  // Consume 1 or more spaces
+  yield p.spaces1;
+  // Parse a sequence of 1 or more non-whitespace characters
+  const {value: path} = yield p.notSpaces1;
+  // Consume 1 or more spaces
+  yield p.spaces1;
+  // Match the string &quot;HTTP/&quot;
+  yield p.string(&quot;HTTP/&quot;);
+  // Parse a new sequence
+  const {value: version} = yield p.seq(function*() {
+    // Parse 1 or more digits
+    const {value: left} = yield p.many1(p.digit);
+    // Match a period
+    yield p.char(&quot;.&quot;);
+    // Parse 1 or more digits
+    const {value: right} = yield p.many1(p.digit);
+    // Assemble the parsed values
+    return `${left}.${right}`;
+  });
+  // Return the final parsed value
+  return {method, path, version};
+});
+
+const result = p.parse(parser, p.stream(&quot;GET /lol.gif HTTP/1.0&quot;));
+
+assert.deepEqual(result.value, {
+  method: &quot;GET&quot;,
+  path: &quot;/lol.gif&quot;,
+  version: &quot;1.0&quot;
+});</code></pre><h2>Licence</h2><p>Copyright 2015 Bodil Stokke</p>
+<p>This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.</p>
+<p>This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Lesser General Public License for more details.</p>
+<p>You should have received a copy of the GNU Lesser General Public
+License along with this program. If not, see</p>
+<p><http://www.gnu.org/licenses/>.</p></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ParseError.html">ParseError</a></li><li><a href="ParseResult.html">ParseResult</a></li><li><a href="Stream.html">Stream</a></li></ul><h3>Global</h3><ul><li><a href="global.html#char">char</a></li><li><a href="global.html#either">either</a></li><li><a href="global.html#fail">fail</a></li><li><a href="global.html#item">item</a></li><li><a href="global.html#many">many</a></li><li><a href="global.html#many1">many1</a></li><li><a href="global.html#many1A">many1A</a></li><li><a href="global.html#manyA">manyA</a></li><li><a href="global.html#maybe">maybe</a></li><li><a href="global.html#notChar">notChar</a></li><li><a href="global.html#parse">parse</a></li><li><a href="global.html#sat">sat</a></li><li><a href="global.html#seq">seq</a></li><li><a href="global.html#stream">stream</a></li><li><a href="global.html#string">string</a></li><li><a href="global.html#unit">unit</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0-dev</a> on Mon Aug 31 2015 16:51:59 GMT+0100 (BST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
