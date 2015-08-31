@@ -4,6 +4,10 @@
 
 ES6 flavoured parser combinators.
 
+## Documentation
+
+Read the [API documentation](./doc/eulalie/1.0.0/index.html).
+
 ## Usage
 
 Eulalie works on the principle of constructing parsers from smaller
