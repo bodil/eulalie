@@ -1,7 +1,11 @@
 /* eslint-env node, mocha */
 
 import assert from "assert";
+import jsesc from "jsesc";
 import * as p from "../src/index";
+
+import mochaTestcheck from "mocha-testcheck";
+mochaTestcheck.install();
 
 describe("stream", () => {
   it("yields values in sequence, then throws an error", () => {
@@ -141,5 +145,27 @@ describe("generator functions", () => {
       version: "1.0"
     });
     assert.equal(result.matched, data);
+  });
+});
+
+describe("complex parsers", () => {
+  check.it("parse an integer", [gen.intWithin(-99999999, 99999999)], (num) => {
+    const s = `${num}`;
+    const r = p.parse(p.int, p.stream(s));
+    assert(r instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r.value, num);
+  });
+  check.it("parse a float", [gen.intWithin(-99999999, 99999999)], (int) => {
+    const num = int / 10000;
+    const s = `${num}`;
+    const r = p.parse(p.float, p.stream(s));
+    assert(r instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r.value, num);
+  });
+  check.it("parse a string", [gen.asciiString], (s) => {
+    const qs = `"${jsesc(s, {quotes: "double"})}"`;
+    const r = p.parse(p.quotedString, p.stream(qs));
+    assert(r instanceof p.ParseResult, `parser output is not ParseResult, s '${s}' qs '${qs}'`);
+    assert.equal(r.value, s, `'${r.value}' did not match '${s}' - string was '${qs}'`);
   });
 });

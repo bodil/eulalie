@@ -377,3 +377,46 @@ export const spaces1 = many1(space);
 
 export const notSpaces = many(sat(not(isSpace)));
 export const notSpaces1 = many1(sat(not(isSpace)));
+
+
+
+export function str([head, ...tail]) {
+  return tail.length ? seq(head, (v) => seq(str(tail), (vs) => unit(v + vs))) : head;
+}
+
+
+
+export const int = seq(function*() {
+  const r = yield str([
+    maybe(char("-")),
+    many1(digit)
+  ]);
+  const n = parseInt(r.value, 10);
+  if (isNaN(n)) {
+    yield fail;
+  }
+  return n;
+});
+
+export const float = seq(function*() {
+  const r = yield str([
+    maybe(char("-")),
+    many(digit),
+    maybe(str([char("."), many1(digit)]))
+  ]);
+  const n = parseFloat(r.value);
+  if (isNaN(n)) {
+    yield fail;
+  }
+  return n;
+});
+
+export const quotedString = seq(function*() {
+  yield char("\"");
+  const {value: s} = yield many(either(
+    seq(char("\\"), () => item),
+    notChar("\"")
+  ));
+  yield char("\"");
+  return s;
+});
