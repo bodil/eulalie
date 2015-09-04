@@ -204,7 +204,7 @@ export function either(p1, p2) {
   }
   if (isIteratorLike(p1)) {
     const {value, done} = p1.next();
-    return done ? value : either(value, either(p1));
+    return done ? fail : either(value, either(p1));
   }
   if (isIterable(p1)) {
     return either(p1[Symbol.iterator]());
