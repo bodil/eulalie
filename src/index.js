@@ -116,6 +116,9 @@ export function stream(s) {
  * @arg {Stream} input - The input to run the parser on.
  */
 export function parse(parser, input) {
+  if (typeof parser !== "function") {
+    throw new Error(`eulalie.parse: expected a parser function, got ${parser}`);
+  }
   return parser(input);
 }
 
