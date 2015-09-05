@@ -64,7 +64,7 @@ export class ParseError extends Error {
    * A {@link ParseError} signals a failed parse operation, and holds the {@link Stream}
    * position at which the parser failed, along with an optional error message.
    * @arg {Stream} input
-   * @arg {string} message
+   * @arg {string} expected
    */
   constructor(input, expected) {
     super();
