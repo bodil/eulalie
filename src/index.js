@@ -59,7 +59,7 @@ export class Stream {
   }
 }
 
-export class ParseError {
+export class ParseError extends Error {
   /**
    * A {@link ParseError} signals a failed parse operation, and holds the {@link Stream}
    * position at which the parser failed, along with an optional error message.
@@ -67,6 +67,7 @@ export class ParseError {
    * @arg {string} message
    */
   constructor(input, message) {
+    super(message);
     this.input = input;
     this.message = message;
     Object.freeze(this);
