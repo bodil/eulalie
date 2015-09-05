@@ -1,4 +1,5 @@
 /* eslint-env node, mocha */
+/* global check, gen */
 
 import assert from "assert";
 import jsesc from "jsesc";
@@ -167,5 +168,49 @@ describe("complex parsers", () => {
     const r = p.parse(p.quotedString, p.stream(qs));
     assert(r instanceof p.ParseResult, `parser output is not ParseResult, s '${s}' qs '${qs}'`);
     assert.equal(r.value, s, `'${r.value}' did not match '${s}' - string was '${qs}'`);
+  });
+});
+
+describe("error reporting", () => {
+  it("produces useful errors", () => {
+    const parser = p.seq(function*() {
+      const {value: method} = yield p.expected(p.many1(p.upper), "an upper case HTTP verb");
+      yield p.spaces1;
+      const {value: path} = yield p.expected(p.notSpaces1, "a URL path component");
+      yield p.spaces1;
+      yield p.expected(p.string("HTTP/"), "the string \"HTTP/\"");
+      const {value: version} = yield p.expected(p.seq(function*() {
+        const {value: left} = yield p.many1(p.digit);
+        yield p.char(".");
+        const {value: right} = yield p.many1(p.digit);
+        return `${left}.${right}`;
+      }), "a HTTP version number");
+      return {method, path, version};
+    });
+
+    const r1 = p.parse(parser, p.stream("lol"));
+    assert(r1 instanceof p.ParseError, "parser output is not ParseError");
+    assert.equal(r1.expected, "an upper case HTTP verb");
+    assert.equal(r1.input.cursor, 0);
+
+    const r2 = p.parse(parser, p.stream("GET lol"));
+    assert(r2 instanceof p.ParseError, "parser output is not ParseError");
+    assert.equal(r2.expected, "whitespace");
+    assert.equal(r2.input.cursor, 7);
+
+    const r3 = p.parse(parser, p.stream("GET lol omg"));
+    assert(r3 instanceof p.ParseError, "parser output is not ParseError");
+    assert.equal(r3.expected, "the string \"HTTP/\"");
+    assert.equal(r3.input.cursor, 8);
+
+    const r4 = p.parse(parser, p.stream("GET lol HTTP/lol"));
+    assert(r4 instanceof p.ParseError, "parser output is not ParseError");
+    assert.equal(r4.expected, "a HTTP version number");
+    assert.equal(r4.input.cursor, 13);
+
+    const r5 = p.parse(parser, p.stream("OMG"));
+    assert(r5 instanceof p.ParseError, "parser output is not ParseError");
+    assert.equal(r5.expected, "whitespace");
+    assert.equal(r5.input.cursor, 3);
   });
 });

@@ -36,7 +36,7 @@ export class Stream {
    */
   get() {
     if (this.atEnd()) {
-      throw new Error("Cannot step past end of buffer.");
+      throw new Error("Cannot read past end of buffer.");
     }
     return this.buffer[this.cursor];
   }
@@ -66,11 +66,17 @@ export class ParseError extends Error {
    * @arg {Stream} input
    * @arg {string} message
    */
-  constructor(input, message) {
-    super(message);
+  constructor(input, expected) {
+    super();
+    this.name = "ParseError";
     this.input = input;
-    this.message = message;
+    this.expected = expected;
     Object.freeze(this);
+  }
+
+  get message() {
+    const quote = (s) => `"${s}"`;
+    return `At position ${this.input.cursor}: expected ${this.expected}, saw ${this.input.atEnd() ? "EOF" : quote(this.input.get())}`;
   }
 }
 
@@ -248,6 +254,18 @@ export function fail(input) {
 }
 
 /**
+ * A parser constructor which returns the provided parser unchanged except that
+ * if it fails, the provided error message will be returned in the
+ * {@link ParseError}.
+ */
+export function expected(parser, message) {
+  return function(input) {
+    const result = parse(parser, input);
+    return result instanceof ParseError ? error(result.input, message) : result;
+  };
+}
+
+/**
  * The {@link item} parser consumes a single character, regardless of what it is, and
  * returns it as its result.
  */
@@ -328,7 +346,7 @@ export function many1(parser) {
  * @arg {string} c - The character this parser will match.
  */
 export function char(c) {
-  return sat((i) => i === c);
+  return expected(sat((i) => i === c), `the character "${c}"`);
 }
 
 /**
@@ -337,7 +355,7 @@ export function char(c) {
  * @arg {string} c - The character this parser won't match.
  */
 export function notChar(c) {
-  return sat((i) => i !== c);
+  return expected(sat((i) => i !== c), `anything but the character "${c}"`);
 }
 
 /**
@@ -346,10 +364,13 @@ export function notChar(c) {
  * @arg {string} s - The string to match.
  */
 export function string(s) {
-  if (s.length > 0) {
-    return seq(char(s[0]), () => seq(string(s.slice(1)), () => unit(s)));
+  function stringP(s) {
+    if (s.length > 0) {
+      return seq(char(s[0]), () => seq(stringP(s.slice(1)), () => unit(s)));
+    }
+    return unit("");
   }
-  return unit("");
+  return expected(stringP(s), `"${s}"`);
 }
 
 
@@ -370,40 +391,40 @@ export const isLower = (c) => isLetter(c) && c == c.toLowerCase();
 export const not = (f) => (c) => !f(c);
 
 /** Parses a single digit using {@link isDigit} as a predicate. */
-export const digit = sat(isDigit);
+export const digit = expected(sat(isDigit), "a digit");
 /** Parses a single whitespace character using {@link isSpace} as a predicate. */
-export const space = sat(isSpace);
+export const space = expected(sat(isSpace), "whitespace");
 /** Parses a single word character using {@link isAlphanum} as a predicate. */
-export const alphanum = sat(isAlphanum);
+export const alphanum = expected(sat(isAlphanum), "a word character");
 /** Parses a single letter using {@link isLetter} as a predicate. */
-export const letter = sat(isLetter);
+export const letter = expected(sat(isLetter), "a letter");
 /** Parses a single upper case letter using {@link isUpper} as a predicate. */
-export const upper = sat(isUpper);
+export const upper = expected(sat(isUpper), "an upper case letter");
 /** Parses a single lower case letter using {@link isLower} as a predicate. */
-export const lower = sat(isLower);
+export const lower = expected(sat(isLower), "a lower case letter");
 
 /** Parses a single character that is not a digit using {@link isDigit} as a predicate. */
-export const notDigit = sat(not(isDigit));
+export const notDigit = expected(sat(not(isDigit)), "a non-digit");
 /** Parses a single non-whitespace character using {@link isSpace} as a predicate. */
-export const notSpace = sat(not(isSpace));
+export const notSpace = expected(sat(not(isSpace)), "a non-whitespace character");
 /** Parses a single non-word character using {@link isAlphanum} as a predicate. */
-export const notAlphanum = sat(not(isAlphanum));
+export const notAlphanum = expected(sat(not(isAlphanum)), "a non-word character");
 /** Parses a single non-letter using {@link isLetter} as a predicate. */
-export const notLetter = sat(not(isLetter));
+export const notLetter = expected(sat(not(isLetter)), "a non-letter");
 /** Parses a single character that is not an upper case letter using {@link isUpper} as a predicate. */
-export const notUpper = sat(not(isUpper));
+export const notUpper = expected(sat(not(isUpper)), "anything but an upper case letter");
 /** Parses a single character that is not a lower case letter using {@link isLower} as a predicate. */
-export const notLower = sat(not(isLower));
+export const notLower = expected(sat(not(isLower)), "anything but a lower case letter");
 
 /** Parses zero or more whitespace characters. */
 export const spaces = many(space);
 /** Parses one or more whitespace characters. */
-export const spaces1 = many1(space);
+export const spaces1 = expected(many1(space), "whitespace");
 
 /** Parses zero or more non-whitespace characters. */
 export const notSpaces = many(sat(not(isSpace)));
 /** Parses one or more non-whitespace characters. */
-export const notSpaces1 = many1(sat(not(isSpace)));
+export const notSpaces1 = expected(many1(sat(not(isSpace))), "one or more non-whitespace characters");
 
 
 
@@ -419,7 +440,7 @@ export function str([head, ...tail]) {
 
 
 /** Parses a positive or negative integer. */
-export const int = seq(function*() {
+export const int = expected(seq(function*() {
   const r = yield str([
     maybe(char("-")),
     many1(digit)
@@ -429,10 +450,10 @@ export const int = seq(function*() {
     yield fail;
   }
   return n;
-});
+}), "an integer");
 
 /** Parses a positive or negative floating point number. */
-export const float = seq(function*() {
+export const float = expected(seq(function*() {
   const r = yield str([
     maybe(char("-")),
     many(digit),
@@ -443,13 +464,13 @@ export const float = seq(function*() {
     yield fail;
   }
   return n;
-});
+}), "a number");
 
 /** Parses a double quoted string, with support for escaping double quotes
  * inside it, and returns the inner string. Does not perform any other form
  * of string escaping.
  */
-export const quotedString = seq(function*() {
+export const quotedString = expected(seq(function*() {
   yield char("\"");
   const {value: s} = yield many(either(
     seq(char("\\"), () => item),
@@ -457,4 +478,4 @@ export const quotedString = seq(function*() {
   ));
   yield char("\"");
   return s;
-});
+}), "a quoted string");
