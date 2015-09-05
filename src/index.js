@@ -353,42 +353,71 @@ export function string(s) {
 
 
 
+/** Returns true if `c` is a digit. */
 export const isDigit = (c) => /^\d$/.test(c);
+/** Returns true if `c` is whitespace. */
 export const isSpace = (c) => /^\s$/.test(c);
+/** Returns true if `c` is a letter, a digit or the underscore character. */
 export const isAlphanum = (c) => /^\w$/.test(c);
+/** Returns true if `c` is an ASCII letter. */
 export const isLetter = (c) => /^[a-zA-Z]$/.test(c);
+/** Returns true if `c` is an upper case ASCII letter. */
 export const isUpper = (c) => isLetter(c) && c == c.toUpperCase();
+/** Returns true if `c` is a lower case ASCII letter. */
 export const isLower = (c) => isLetter(c) && c == c.toLowerCase();
+/** Takes a predicate function and returns its inverse. */
 export const not = (f) => (c) => !f(c);
 
+/** Parses a single digit using {@link isDigit} as a predicate. */
 export const digit = sat(isDigit);
+/** Parses a single whitespace character using {@link isSpace} as a predicate. */
 export const space = sat(isSpace);
+/** Parses a single word character using {@link isAlphanum} as a predicate. */
 export const alphanum = sat(isAlphanum);
+/** Parses a single letter using {@link isLetter} as a predicate. */
 export const letter = sat(isLetter);
+/** Parses a single upper case letter using {@link isUpper} as a predicate. */
 export const upper = sat(isUpper);
+/** Parses a single lower case letter using {@link isLower} as a predicate. */
 export const lower = sat(isLower);
 
+/** Parses a single character that is not a digit using {@link isDigit} as a predicate. */
 export const notDigit = sat(not(isDigit));
+/** Parses a single non-whitespace character using {@link isSpace} as a predicate. */
 export const notSpace = sat(not(isSpace));
+/** Parses a single non-word character using {@link isAlphanum} as a predicate. */
 export const notAlphanum = sat(not(isAlphanum));
+/** Parses a single non-letter using {@link isLetter} as a predicate. */
 export const notLetter = sat(not(isLetter));
+/** Parses a single character that is not an upper case letter using {@link isUpper} as a predicate. */
 export const notUpper = sat(not(isUpper));
+/** Parses a single character that is not a lower case letter using {@link isLower} as a predicate. */
 export const notLower = sat(not(isLower));
 
+/** Parses zero or more whitespace characters. */
 export const spaces = many(space);
+/** Parses one or more whitespace characters. */
 export const spaces1 = many1(space);
 
+/** Parses zero or more non-whitespace characters. */
 export const notSpaces = many(sat(not(isSpace)));
+/** Parses one or more non-whitespace characters. */
 export const notSpaces1 = many1(sat(not(isSpace)));
 
 
 
+/**
+ * Given a list of parsers which return string values, builds a parser which
+ * matches each of them in sequence and returns the entire string matched by
+ * the sequence.
+ */
 export function str([head, ...tail]) {
   return tail.length ? seq(head, (v) => seq(str(tail), (vs) => unit(v + vs))) : head;
 }
 
 
 
+/** Parses a positive or negative integer. */
 export const int = seq(function*() {
   const r = yield str([
     maybe(char("-")),
@@ -401,6 +430,7 @@ export const int = seq(function*() {
   return n;
 });
 
+/** Parses a positive or negative floating point number. */
 export const float = seq(function*() {
   const r = yield str([
     maybe(char("-")),
@@ -414,6 +444,10 @@ export const float = seq(function*() {
   return n;
 });
 
+/** Parses a double quoted string, with support for escaping double quotes
+ * inside it, and returns the inner string. Does not perform any other form
+ * of string escaping.
+ */
 export const quotedString = seq(function*() {
   yield char("\"");
   const {value: s} = yield many(either(

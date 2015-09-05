@@ -120,7 +120,7 @@
       "prefer-template": 2,
       "radix": 2,
       "require-yield": 2,
-      "valid-jsdoc": 2,
+      "valid-jsdoc": 0,
       "yoda": [
         2,
         "never"
