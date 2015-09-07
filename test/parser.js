@@ -96,8 +96,8 @@ describe("string matching", () => {
   });
 });
 
-describe("generator functions", () => {
-  it("successful parse with seq", () => {
+describe("alternate seq/either syntax", () => {
+  it("successful seq parse with generator", () => {
     const input = p.stream("omg");
     const result = p.parse(p.seq(function*() {
       const {value: a} = yield p.item;
@@ -111,7 +111,7 @@ describe("generator functions", () => {
     assert.equal(result.start.cursor, 0);
     assert.equal(result.next.cursor, 3);
   });
-  it("failed parse with seq", () => {
+  it("failed seq parse with generator", () => {
     const input = p.stream("omg");
     const result = p.parse(p.seq(function*() {
       yield p.item;
@@ -146,6 +146,85 @@ describe("generator functions", () => {
       version: "1.0"
     });
     assert.equal(result.matched, data);
+  });
+  it("list of eithers", () => {
+    const parser = p.either([p.string("omg"), p.string("wtf"), p.string("bbq")]);
+
+    const r1 = p.parse(parser, p.stream("omg"));
+    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r1.value, "omg");
+
+    const r2 = p.parse(parser, p.stream("wtf"));
+    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r2.value, "wtf");
+
+    const r3 = p.parse(parser, p.stream("bbq"));
+    assert(r3 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r3.value, "bbq");
+
+    const r4 = p.parse(parser, p.stream("lol"));
+    assert(r4 instanceof p.ParseError, "parser output is not ParseError");
+  });
+});
+
+describe("many* combinators", () => {
+  it("manyA yields a list of results", () => {
+    const parser = p.manyA(p.string("omg"));
+
+    const r1 = p.parse(parser, p.stream("omgwtfbbq"));
+    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.deepEqual(r1.value, ["omg"]);
+
+    const r2 = p.parse(parser, p.stream("omgomgomgomgwtfbbq"));
+    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.deepEqual(r2.value, ["omg", "omg", "omg", "omg"]);
+
+    const r3 = p.parse(parser, p.stream("wtfbbq"));
+    assert(r3 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.deepEqual(r3.value, []);
+  });
+  it("many1A yields a non-empty list of results", () => {
+    const parser = p.many1A(p.string("omg"));
+
+    const r1 = p.parse(parser, p.stream("omgwtfbbq"));
+    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.deepEqual(r1.value, ["omg"]);
+
+    const r2 = p.parse(parser, p.stream("omgomgomgomgwtfbbq"));
+    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.deepEqual(r2.value, ["omg", "omg", "omg", "omg"]);
+
+    const r3 = p.parse(parser, p.stream("wtfbbq"));
+    assert(r3 instanceof p.ParseError, "parser output is not ParseError");
+  });
+  it("many yields a string of results", () => {
+    const parser = p.many(p.string("omg"));
+
+    const r1 = p.parse(parser, p.stream("omgwtfbbq"));
+    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r1.value, "omg");
+
+    const r2 = p.parse(parser, p.stream("omgomgomgomgwtfbbq"));
+    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r2.value, "omgomgomgomg");
+
+    const r3 = p.parse(parser, p.stream("wtfbbq"));
+    assert(r3 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.deepEqual(r3.value, "");
+  });
+  it("many1 yields a non-empty string of results", () => {
+    const parser = p.many1(p.string("omg"));
+
+    const r1 = p.parse(parser, p.stream("omgwtfbbq"));
+    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r1.value, "omg");
+
+    const r2 = p.parse(parser, p.stream("omgomgomgomgwtfbbq"));
+    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert.equal(r2.value, "omgomgomgomg");
+
+    const r3 = p.parse(parser, p.stream("wtfbbq"));
+    assert(r3 instanceof p.ParseError, "parser output is not ParseError");
   });
 });
 
