@@ -1,6 +1,7 @@
 import isGeneratorFunction from "is-generator-function";
 import isIterable from "is-iterable";
 import isIteratorLike from "is-iterator-like";
+import * as stringOps from "./string";
 
 function isGen(v) {
   if (regeneratorRuntime) {
@@ -76,7 +77,20 @@ export class ParseError extends Error {
 
   get message() {
     const quote = (s) => `"${s}"`;
-    return `At position ${this.input.cursor}: expected ${this.expected}, saw ${this.input.atEnd() ? "EOF" : quote(this.input.get())}`;
+    return `expected ${this.expected}, saw ${this.input.atEnd() ? "EOF" : quote(stringOps.nextOnLine(6, this.input.buffer, this.input.cursor))}`;
+  }
+
+  print() {
+    const {line, row, column} = stringOps.findLine(this.input.buffer, this.input.cursor);
+    const header = `At line ${row}, column ${column}:\n\n`;
+    const arrowhead = `\n${stringOps.repeat(column - 1, " ")}^\n`;
+    const arrowstem = `${stringOps.repeat(column - 1, " ")}|\n`;
+    const msg = `Error: ${this.message}`;
+    if (line.trim().length) {
+      return header + line + arrowhead + arrowstem + msg;
+    } else {
+      return header + msg;
+    }
   }
 }
 

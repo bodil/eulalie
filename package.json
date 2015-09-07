@@ -24,6 +24,7 @@
   "homepage": "https://github.com/bodil/eulalie#readme",
   "files": [
     "index.js",
+    "string.js",
     "README.md",
     "COPYING",
     "COPYING.LESSER"

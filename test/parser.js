@@ -292,4 +292,32 @@ describe("error reporting", () => {
     assert.equal(r5.expected, "whitespace");
     assert.equal(r5.input.cursor, 3);
   });
+  it("prints a nice error message", () => {
+    const pl = p.str([p.string("omg"), p.spaces1]);
+    const parser = p.str([pl, pl, pl, pl, pl]);
+
+    const r1 = p.parse(parser, p.stream("omg\nomg\nomg\nlol\nomg\n"));
+    assert(r1 instanceof p.ParseError, "parser output is not ParseError");
+    assert.equal(r1.print(), `At line 3, column 0:
+
+lol
+^
+|
+Error: expected "omg", saw "lol"`);
+
+    const r2 = p.parse(parser, p.stream("omg\nomg\nomg\n"));
+    assert(r2 instanceof p.ParseError, "parser output is not ParseError");
+    assert.equal(r2.print(), `At line 3, column 0:
+
+Error: expected "omg", saw EOF`);
+
+    const r3 = p.parse(parser, p.stream("omg\nomg\nomg\nlololololol\nomg\n"));
+    assert(r3 instanceof p.ParseError, "parser output is not ParseError");
+    assert.equal(r3.print(), `At line 3, column 0:
+
+lololololol
+^
+|
+Error: expected "omg", saw "lololo..."`);
+  });
 });
