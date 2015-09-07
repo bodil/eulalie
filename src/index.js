@@ -303,7 +303,7 @@ export function maybe(parser) {
  * @arg {Parser} parser
  */
 export function manyA(parser) {
-  return either(many1(parser), unit([]));
+  return either(many1A(parser), unit([]));
 }
 
 /**
@@ -313,7 +313,7 @@ export function manyA(parser) {
  * @arg {Parser} parser
  */
 export function many1A(parser) {
-  return seq(parser, (head) => seq(many(parser), (tail) => unit([head, ...tail])));
+  return seq(parser, (head) => seq(manyA(parser), (tail) => unit([head, ...tail])));
 }
 
 
