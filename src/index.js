@@ -11,7 +11,7 @@ function isGen(v) {
   return isGeneratorFunction(v);
 }
 
-export class Stream {
+class Stream {
   /**
    * A {@link Stream} is a structure containing a reference to a string, and a positional
    * index into that string. Three operations are permitted on it: reading the character
@@ -27,6 +27,7 @@ export class Stream {
    * @arg {number} cursor
    */
   constructor(buffer, cursor) {
+    this.name = "Eulalie.Stream";
     this.buffer = buffer;
     this.cursor = typeof cursor === "number" ? cursor : 0;
     Object.freeze(this);
@@ -60,7 +61,7 @@ export class Stream {
   }
 }
 
-export class ParseError extends Error {
+class ParseError extends Error {
   /**
    * A {@link ParseError} signals a failed parse operation, and holds the {@link Stream}
    * position at which the parser failed, along with an optional error message.
@@ -69,7 +70,7 @@ export class ParseError extends Error {
    */
   constructor(input, expected) {
     super();
-    this.name = "ParseError";
+    this.name = "Eulalie.ParseError";
     this.input = input;
     this.expected = expected;
     Object.freeze(this);
@@ -94,7 +95,7 @@ export class ParseError extends Error {
   }
 }
 
-export class ParseResult {
+class ParseResult {
   /**
    * A {@link ParseResult} holds the result of a successful parse operation. It contains
    * the value which was parsed, a {@link Stream} pointing to the remaining unconsumed
@@ -105,6 +106,7 @@ export class ParseResult {
    * @arg {string} matched - The exact string this parser consumed.
    */
   constructor(value, next, start, matched) {
+    this.name = "Eulalie.ParseResult";
     this.value = value;
     this.next = next;
     this.start = start;
@@ -112,6 +114,22 @@ export class ParseResult {
     Object.freeze(this);
   }
 }
+
+
+
+export function isStream(o) {
+  return o.hasOwnProperty("name") && o.name === "Eulalie.ParseStream";
+}
+
+export function isError(o) {
+  return o.hasOwnProperty("name") && o.name === "Eulalie.ParseError";
+}
+
+export function isResult(o) {
+  return o.hasOwnProperty("name") && o.name === "Eulalie.ParseResult";
+}
+
+
 
 export function error(input, message) {
   return new ParseError(input, message);
@@ -152,9 +170,9 @@ export function parse(parser, input) {
 export function makeParser(p) {
   return function(s) {
     const r = parse(p, stream(s));
-    if (r instanceof ParseError) {
+    if (isError(r)) {
       throw r;
-    } else if (r instanceof ParseResult) {
+    } else if (isResult(r)) {
       return r.value;
     } else {
       throw new Error(`parser returned non-ParseResult|Error: ${r}`);
@@ -165,7 +183,8 @@ export function makeParser(p) {
 
 
 function badValue(v) {
-  return new Error(`Parser returned unexpected value: ${v}`);
+  const o = require("util").inspect(v);
+  return new Error(`Parser returned unexpected value: ${o}`);
 }
 
 
@@ -195,11 +214,11 @@ export function seq(parser, callback) {
           return result(next.value, input, res.start, res.matched);
         }
         const out = parse(next.value, input);
-        if (out instanceof ParseResult) {
+        if (isResult(out)) {
           const matched = res === undefined ? out.matched : res.matched + out.matched;
           return runP(out.next, result(out.value, out.next, start, matched));
         }
-        if (out instanceof ParseError) {
+        if (isError(out)) {
           return out;
         }
         throw badValue(out);
@@ -210,17 +229,17 @@ export function seq(parser, callback) {
 
   return (input) => {
     const out = parse(parser, input);
-    if (out instanceof ParseResult) {
+    if (isResult(out)) {
       const next = parse(callback(out.value, input), out.next);
-      if (next instanceof ParseResult) {
+      if (isResult(next)) {
         return result(next.value, next.next, input, out.matched + next.matched);
       }
-      if (next instanceof ParseError) {
+      if (isError(next)) {
         return next;
       }
       throw badValue(next);
     }
-    if (out instanceof ParseError) {
+    if (isError(out)) {
       return out;
     }
     throw badValue(out);
@@ -251,12 +270,12 @@ export function either(p1, p2) {
   }
   return (input) => {
     const r1 = parse(p1, input);
-    if (r1 instanceof ParseResult) {
+    if (isResult(r1)) {
       return r1;
     }
-    if (r1 instanceof ParseError) {
+    if (isError(r1)) {
       const r2 = parse(p2, input);
-      if (r2 instanceof ParseResult || r2 instanceof ParseError) {
+      if (isResult(r2) || isError(r2)) {
         return r2;
       }
       throw badValue(r2);
@@ -294,7 +313,7 @@ export function fail(input) {
 export function expected(parser, message) {
   return function(input) {
     const result = parse(parser, input);
-    return result instanceof ParseError ? error(result.input, message) : result;
+    return isError(result) ? error(result.input, message) : result;
   };
 }
 
