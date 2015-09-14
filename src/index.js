@@ -88,9 +88,8 @@ export class ParseError extends Error {
     const msg = `Error: ${this.message}`;
     if (line.trim().length) {
       return header + line + arrowhead + arrowstem + msg;
-    } else {
-      return header + msg;
     }
+    return header + msg;
   }
 }
 
