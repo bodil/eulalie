@@ -30,7 +30,7 @@ describe("basic combinators", () => {
   it("item", () => {
     const input = p.stream("hi");
     const result = p.parse(p.item, input);
-    assert(result instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(result), "parser output is not ParseResult");
     assert.equal(result.matched, "h");
     assert.equal(result.value, "h");
     assert.equal(result.next.get(), "i");
@@ -39,7 +39,7 @@ describe("basic combinators", () => {
     const input = p.stream("hi");
     const two = p.seq(p.item, (first) => p.seq(p.item, (second) => p.unit(first + second)));
     const result = p.parse(two, input);
-    assert(result instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(result), "parser output is not ParseResult");
     assert.equal(result.matched, "hi");
     assert.equal(result.value, "hi");
     assert.equal(result.start.cursor, 0);
@@ -50,14 +50,14 @@ describe("basic combinators", () => {
     const input = p.stream("hi");
     const isH = (s) => s === "h";
     const res1 = p.parse(p.sat(isH), input);
-    assert(res1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(res1), "parser output is not ParseResult");
     assert.equal(res1.matched, "h");
     assert.equal(res1.value, "h");
     assert.equal(res1.start.cursor, 0);
     assert.equal(res1.next.cursor, 1);
     assert(!res1.next.atEnd(), "res1 is at end");
     const res2 = p.parse(p.sat(isH), res1.next);
-    assert(res2 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(res2), "parser output is not ParseError");
     assert.equal(res2.input.cursor, 1, "start of failing parser isn't where it should be");
   });
   it("either", () => {
@@ -68,7 +68,7 @@ describe("basic combinators", () => {
     const p2 = p.either(p.sat(isI), p.sat(isH));
     const r1 = p.parse(p1, input);
     const r2 = p.parse(p2, input);
-    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r1), "parser output is not ParseResult");
     assert.equal(r1.matched, "h");
     assert.equal(r1.value, "h");
     assert.deepEqual(r1, r2);
@@ -79,7 +79,7 @@ describe("string matching", () => {
   it("matches a string", () => {
     const input = p.stream("ohai lol");
     const result = p.parse(p.string("ohai"), input);
-    assert(result instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(result), "parser output is not ParseResult");
     assert.equal(result.matched, "ohai");
     assert.equal(result.value, "ohai");
     assert.equal(result.start.cursor, 0);
@@ -88,7 +88,7 @@ describe("string matching", () => {
   it("matches a sequence of characters", () => {
     const input = p.stream("ohai lol");
     const result = p.parse(p.seq(p.char("o"), () => p.seq(p.char("h"), () => p.seq(p.char("a"), () => p.seq(p.char("i"), () => p.unit("lol"))))), input);
-    assert(result instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(result), "parser output is not ParseResult");
     assert.equal(result.matched, "ohai");
     assert.equal(result.value, "lol");
     assert.equal(result.start.cursor, 0);
@@ -105,7 +105,7 @@ describe("alternate seq/either syntax", () => {
       const {value: c} = yield p.item;
       return a + b + c;
     }), input);
-    assert(result instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(result), "parser output is not ParseResult");
     assert.equal(result.matched, "omg");
     assert.equal(result.value, "omg");
     assert.equal(result.start.cursor, 0);
@@ -118,7 +118,7 @@ describe("alternate seq/either syntax", () => {
       yield p.item;
       yield p.sat((i) => i === "l");
     }), input);
-    assert(result instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(result), "parser output is not ParseError");
     assert.equal(result.input.cursor, 2);
   });
   it("an HTTP parser", () => {
@@ -139,7 +139,7 @@ describe("alternate seq/either syntax", () => {
       return {method, path, version};
     });
     const result = p.parse(parser, input);
-    assert(result instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(result), "parser output is not ParseResult");
     assert.deepEqual(result.value, {
       method: "GET",
       path: "/lol.gif",
@@ -151,19 +151,19 @@ describe("alternate seq/either syntax", () => {
     const parser = p.either([p.string("omg"), p.string("wtf"), p.string("bbq")]);
 
     const r1 = p.parse(parser, p.stream("omg"));
-    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r1), "parser output is not ParseResult");
     assert.equal(r1.value, "omg");
 
     const r2 = p.parse(parser, p.stream("wtf"));
-    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r2), "parser output is not ParseResult");
     assert.equal(r2.value, "wtf");
 
     const r3 = p.parse(parser, p.stream("bbq"));
-    assert(r3 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r3), "parser output is not ParseResult");
     assert.equal(r3.value, "bbq");
 
     const r4 = p.parse(parser, p.stream("lol"));
-    assert(r4 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r4), "parser output is not ParseError");
   });
 });
 
@@ -172,59 +172,59 @@ describe("many* combinators", () => {
     const parser = p.manyA(p.string("omg"));
 
     const r1 = p.parse(parser, p.stream("omgwtfbbq"));
-    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r1), "parser output is not ParseResult");
     assert.deepEqual(r1.value, ["omg"]);
 
     const r2 = p.parse(parser, p.stream("omgomgomgomgwtfbbq"));
-    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r2), "parser output is not ParseResult");
     assert.deepEqual(r2.value, ["omg", "omg", "omg", "omg"]);
 
     const r3 = p.parse(parser, p.stream("wtfbbq"));
-    assert(r3 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r3), "parser output is not ParseResult");
     assert.deepEqual(r3.value, []);
   });
   it("many1A yields a non-empty list of results", () => {
     const parser = p.many1A(p.string("omg"));
 
     const r1 = p.parse(parser, p.stream("omgwtfbbq"));
-    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r1), "parser output is not ParseResult");
     assert.deepEqual(r1.value, ["omg"]);
 
     const r2 = p.parse(parser, p.stream("omgomgomgomgwtfbbq"));
-    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r2), "parser output is not ParseResult");
     assert.deepEqual(r2.value, ["omg", "omg", "omg", "omg"]);
 
     const r3 = p.parse(parser, p.stream("wtfbbq"));
-    assert(r3 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r3), "parser output is not ParseError");
   });
   it("many yields a string of results", () => {
     const parser = p.many(p.string("omg"));
 
     const r1 = p.parse(parser, p.stream("omgwtfbbq"));
-    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r1), "parser output is not ParseResult");
     assert.equal(r1.value, "omg");
 
     const r2 = p.parse(parser, p.stream("omgomgomgomgwtfbbq"));
-    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r2), "parser output is not ParseResult");
     assert.equal(r2.value, "omgomgomgomg");
 
     const r3 = p.parse(parser, p.stream("wtfbbq"));
-    assert(r3 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r3), "parser output is not ParseResult");
     assert.deepEqual(r3.value, "");
   });
   it("many1 yields a non-empty string of results", () => {
     const parser = p.many1(p.string("omg"));
 
     const r1 = p.parse(parser, p.stream("omgwtfbbq"));
-    assert(r1 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r1), "parser output is not ParseResult");
     assert.equal(r1.value, "omg");
 
     const r2 = p.parse(parser, p.stream("omgomgomgomgwtfbbq"));
-    assert(r2 instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r2), "parser output is not ParseResult");
     assert.equal(r2.value, "omgomgomgomg");
 
     const r3 = p.parse(parser, p.stream("wtfbbq"));
-    assert(r3 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r3), "parser output is not ParseError");
   });
 });
 
@@ -232,20 +232,20 @@ describe("complex parsers", () => {
   check.it("parse an integer", [gen.intWithin(-99999999, 99999999)], (num) => {
     const s = `${num}`;
     const r = p.parse(p.int, p.stream(s));
-    assert(r instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r), "parser output is not ParseResult");
     assert.equal(r.value, num);
   });
   check.it("parse a float", [gen.intWithin(-99999999, 99999999)], (int) => {
     const num = int / 10000;
     const s = `${num}`;
     const r = p.parse(p.float, p.stream(s));
-    assert(r instanceof p.ParseResult, "parser output is not ParseResult");
+    assert(p.isResult(r), "parser output is not ParseResult");
     assert.equal(r.value, num);
   });
   check.it("parse a string", [gen.asciiString], (s) => {
     const qs = `"${jsesc(s, {quotes: "double"})}"`;
     const r = p.parse(p.quotedString, p.stream(qs));
-    assert(r instanceof p.ParseResult, `parser output is not ParseResult, s '${s}' qs '${qs}'`);
+    assert(p.isResult(r), `parser output is not ParseResult, s '${s}' qs '${qs}'`);
     assert.equal(r.value, s, `'${r.value}' did not match '${s}' - string was '${qs}'`);
   });
 });
@@ -268,27 +268,27 @@ describe("error reporting", () => {
     });
 
     const r1 = p.parse(parser, p.stream("lol"));
-    assert(r1 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r1), "parser output is not ParseError");
     assert.equal(r1.expected, "an upper case HTTP verb");
     assert.equal(r1.input.cursor, 0);
 
     const r2 = p.parse(parser, p.stream("GET lol"));
-    assert(r2 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r2), "parser output is not ParseError");
     assert.equal(r2.expected, "whitespace");
     assert.equal(r2.input.cursor, 7);
 
     const r3 = p.parse(parser, p.stream("GET lol omg"));
-    assert(r3 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r3), "parser output is not ParseError");
     assert.equal(r3.expected, "the string \"HTTP/\"");
     assert.equal(r3.input.cursor, 8);
 
     const r4 = p.parse(parser, p.stream("GET lol HTTP/lol"));
-    assert(r4 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r4), "parser output is not ParseError");
     assert.equal(r4.expected, "a HTTP version number");
     assert.equal(r4.input.cursor, 13);
 
     const r5 = p.parse(parser, p.stream("OMG"));
-    assert(r5 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r5), "parser output is not ParseError");
     assert.equal(r5.expected, "whitespace");
     assert.equal(r5.input.cursor, 3);
   });
@@ -297,7 +297,7 @@ describe("error reporting", () => {
     const parser = p.str([pl, pl, pl, pl, pl]);
 
     const r1 = p.parse(parser, p.stream("omg\nomg\nomg\nlol\nomg\n"));
-    assert(r1 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r1), "parser output is not ParseError");
     assert.equal(r1.print(), `At line 3, column 0:
 
 lol
@@ -306,13 +306,13 @@ lol
 Error: expected "omg", saw "lol"`);
 
     const r2 = p.parse(parser, p.stream("omg\nomg\nomg\n"));
-    assert(r2 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r2), "parser output is not ParseError");
     assert.equal(r2.print(), `At line 3, column 0:
 
 Error: expected "omg", saw EOF`);
 
     const r3 = p.parse(parser, p.stream("omg\nomg\nomg\nlololololol\nomg\n"));
-    assert(r3 instanceof p.ParseError, "parser output is not ParseError");
+    assert(p.isError(r3), "parser output is not ParseError");
     assert.equal(r3.print(), `At line 3, column 0:
 
 lololololol
