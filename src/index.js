@@ -66,26 +66,39 @@ class ParseError extends Error {
    * A {@link ParseError} signals a failed parse operation, and holds the {@link Stream}
    * position at which the parser failed, along with an optional error message.
    * @arg {Stream} input
-   * @arg {string} expected
+   * @arg {(string|string[])} expected
+   * @arg {boolean} fatal - true if this error should terminate parsing immediately.
    */
-  constructor(input, expected) {
+  constructor(input, expected, fatal) {
     super();
     this.name = "Eulalie.ParseError";
     this.input = input;
-    this.expected = expected;
+    this.expected = expected instanceof Set ? expected :
+                    new Set(expected ? [expected] : []);
+    this.fatal = fatal === true;
     Object.freeze(this);
+  }
+
+  escalate() {
+    return new ParseError(this.input, this.expected, true);
+  }
+
+  extend(e) {
+    const eP = new Set([...this.expected].concat([...e.expected]));
+    return new ParseError(this.input, eP, this.fatal);
   }
 
   get message() {
     const quote = (s) => `"${s}"`;
-    return `expected ${this.expected}, saw ${this.input.atEnd() ? "EOF" : quote(stringOps.nextOnLine(6, this.input.buffer, this.input.cursor))}`;
+    const exp = (e) => [...e].join(" or ");
+    return `expected ${exp(this.expected)}, saw ${this.input.atEnd() ? "EOF" : quote(stringOps.nextOnLine(6, this.input.buffer, this.input.cursor))}`;
   }
 
   print() {
     const {line, row, column} = stringOps.findLine(this.input.buffer, this.input.cursor);
     const header = `At line ${row}, column ${column}:\n\n`;
-    const arrowhead = `\n${stringOps.repeat(column - 1, " ")}^\n`;
-    const arrowstem = `${stringOps.repeat(column - 1, " ")}|\n`;
+    const arrowhead = `\n${stringOps.repeat(column, " ")}^\n`;
+    const arrowstem = `${stringOps.repeat(column, " ")}|\n`;
     const msg = `Error: ${this.message}`;
     if (line.trim().length) {
       return header + line + arrowhead + arrowstem + msg;
@@ -273,13 +286,45 @@ export function either(p1, p2) {
       return r1;
     }
     if (isError(r1)) {
+      if (r1.fatal) {
+        return r1;
+      }
       const r2 = parse(p2, input);
-      if (isResult(r2) || isError(r2)) {
+      if (isResult(r2)) {
         return r2;
+      }
+      if (isError(r2)) {
+        return r1.extend(r2);
       }
       throw badValue(r2);
     }
     throw badValue(r1);
+  };
+}
+
+/**
+ * The {@cut} parser combinator takes a parser and produces a new parser
+ * for which all errors are fatal, causing {@either} blocks to stop trying
+ * further parsers and return immediately with the fatal error.
+ *
+ * Two shorthands are available: first, you can pass it a generator function
+ * instead of a parser, which will be turned into a parser using {@link seq}.
+ * You can also give two arguments, which will generate a parser which
+ * sequences the two parsers (or generators) together, with the cut applied
+ * only to the second parser. If you need to capture the output of the first
+ * parser, you'll need to build the sequence manually; this shorthand is only
+ * helpful for situations where the first parser checks for a constant.
+ * @arg {Parser} parser
+ * @arg {?Parser} parser2
+ */
+export function cut(parser, parser2) {
+  const p = isGen(parser) ? seq(parser) : parser;
+  if (parser2 !== undefined) {
+    return seq(p, () => cut(parser2));
+  }
+  return (input) => {
+    const r = parse(p, input);
+    return isError(r) ? r.escalate() : r;
   };
 }
 
@@ -397,7 +442,7 @@ export function many1(parser) {
  * @arg {string} c - The character this parser will match.
  */
 export function char(c) {
-  return expected(sat((i) => i === c), `the character "${c}"`);
+  return expected(sat((i) => i === c), `"${c}"`);
 }
 
 /**
@@ -406,7 +451,7 @@ export function char(c) {
  * @arg {string} c - The character this parser won't match.
  */
 export function notChar(c) {
-  return expected(sat((i) => i !== c), `anything but the character "${c}"`);
+  return expected(sat((i) => i !== c), `anything but "${c}"`);
 }
 
 /**

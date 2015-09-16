@@ -269,27 +269,27 @@ describe("error reporting", () => {
 
     const r1 = p.parse(parser, p.stream("lol"));
     assert(p.isError(r1), "parser output is not ParseError");
-    assert.equal(r1.expected, "an upper case HTTP verb");
+    assert.deepEqual([...r1.expected], ["an upper case HTTP verb"]);
     assert.equal(r1.input.cursor, 0);
 
     const r2 = p.parse(parser, p.stream("GET lol"));
     assert(p.isError(r2), "parser output is not ParseError");
-    assert.equal(r2.expected, "whitespace");
+    assert.deepEqual([...r2.expected], ["whitespace"]);
     assert.equal(r2.input.cursor, 7);
 
     const r3 = p.parse(parser, p.stream("GET lol omg"));
     assert(p.isError(r3), "parser output is not ParseError");
-    assert.equal(r3.expected, "the string \"HTTP/\"");
+    assert.deepEqual([...r3.expected], ["the string \"HTTP/\""]);
     assert.equal(r3.input.cursor, 8);
 
     const r4 = p.parse(parser, p.stream("GET lol HTTP/lol"));
     assert(p.isError(r4), "parser output is not ParseError");
-    assert.equal(r4.expected, "a HTTP version number");
+    assert.deepEqual([...r4.expected], ["a HTTP version number"]);
     assert.equal(r4.input.cursor, 13);
 
     const r5 = p.parse(parser, p.stream("OMG"));
     assert(p.isError(r5), "parser output is not ParseError");
-    assert.equal(r5.expected, "whitespace");
+    assert.deepEqual([...r5.expected], ["whitespace"]);
     assert.equal(r5.input.cursor, 3);
   });
   it("prints a nice error message", () => {
@@ -319,5 +319,34 @@ lololololol
 ^
 |
 Error: expected "omg", saw "lololo..."`);
+  });
+  it("escalates errors past a cut", () => {
+    const p1 = p.cut(p.string("hai"), function*() {
+      yield p.spaces;
+      yield p.quotedString;
+      return 0;
+    });
+    const p2 = p.cut(p.string("lol"), function*() {
+      yield p.spaces;
+      yield p.quotedString;
+      return 0;
+    });
+    const parser = p.either(p1, p2);
+    const r1 = p.parse(parser, p.stream("hai omg"));
+    assert(p.isError(r1), "parser output is not ParseError");
+    assert.equal(r1.fatal, true, "error is not fatal");
+    assert.deepEqual([...r1.expected], ["a quoted string"]);
+  });
+  it("reports all errors from a failed either", () => {
+    const parser = p.either(p.string("hai"), p.string("lol"));
+    const r1 = p.parse(parser, p.stream("wat"));
+    assert(p.isError(r1), "parser output is not ParseError");
+    assert.deepEqual([...r1.expected], [`"hai"`, `"lol"`]);
+    assert.equal(r1.print(), `At line 0, column 0:
+
+wat
+^
+|
+Error: expected "hai" or "lol", saw "wat"`);
   });
 });
