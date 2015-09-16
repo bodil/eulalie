@@ -55,12 +55,12 @@ export function repeat(n, s) {
  */
 export function nextOnLine(n, s, i) {
   let ct = 0, pos = i, out = "";
-  while (ct < n && s[pos] !== "\n") {
+  while (ct < n && s[pos] !== "\n" && ct < s.length) {
     out += s[pos];
     pos++;
     ct++;
   }
-  if (s[pos] !== "\n") {
+  if (s[pos] !== "\n" && ct < s.length) {
     out += "...";
   }
   return out;
