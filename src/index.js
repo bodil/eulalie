@@ -59,6 +59,15 @@ class Stream {
   atEnd() {
     return this.cursor >= this.buffer.length;
   }
+
+  /**
+   * Return `true` if this {@link Stream} is equal (determined by whether
+   * the buffer and cursor are equal) to the provided {@link Stream}.
+   * @arg {Stream} other
+   */
+  equal(other) {
+    return this.cursor === other.cursor && this.buffer === other.buffer;
+  }
 }
 
 class ParseError extends Error {
@@ -79,11 +88,22 @@ class ParseError extends Error {
     Object.freeze(this);
   }
 
+  /**
+   * Return a copy of this error with the {@link fatal} property set to true.
+   */
   escalate() {
     return new ParseError(this.input, this.expected, true);
   }
 
+  /**
+   * If the provided {@link ParseError} refers to the same input as this error,
+   * extend the set of expected messages to include those of the provided error.
+   * Otherwise, return this error unchanged.
+   */
   extend(e) {
+    if (!this.input.equal(e.input)) {
+      return this;
+    }
     const eP = new Set([...this.expected].concat([...e.expected]));
     return new ParseError(this.input, eP, this.fatal);
   }
