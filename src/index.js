@@ -75,17 +75,26 @@ class ParseError extends Error {
    * A {@link ParseError} signals a failed parse operation, and holds the {@link Stream}
    * position at which the parser failed, along with an optional error message.
    * @arg {Stream} input
-   * @arg {(string|string[])} expected
+   * @arg {(string|Set)} expected
    * @arg {boolean} fatal - true if this error should terminate parsing immediately.
    */
   constructor(input, expected, fatal) {
     super();
     this.name = "Eulalie.ParseError";
     this.input = input;
-    this.expected = expected instanceof Set ? expected :
-                    new Set(expected ? [expected] : []);
+    this.expected = expected instanceof Set ? expected
+                  : new Set(expected ? [expected] : []);
     this.fatal = fatal === true;
     Object.freeze(this);
+  }
+
+  /**
+   * Return a copy of this error, with the provided expected value
+   * in place of the current value.
+   * @arg {string|Set} expected
+   */
+  withExpected(expected) {
+    return new ParseError(this.input, expected, this.fatal);
   }
 
   /**
@@ -96,12 +105,18 @@ class ParseError extends Error {
   }
 
   /**
-   * If the provided {@link ParseError} refers to the same input as this error,
-   * extend the set of expected messages to include those of the provided error.
-   * Otherwise, return this error unchanged.
+   * Create an aggregate error by adding another error to the current one.
+   * If the new error occurs before the current in the buffer, it is simply
+   * ignored, and the result will be the current error. If it's at the same
+   * position, we return a new error containing the union of the two errors'
+   * expected messages. If it's ahead of the current error, we discard the
+   * current and return the new error unchanged.
    */
   extend(e) {
-    if (!this.input.equal(e.input)) {
+    if (this.input.cursor < e.input.cursor) {
+      return e;
+    }
+    if (this.input.cursor > e.input.cursor) {
       return this;
     }
     const eP = new Set([...this.expected].concat([...e.expected]));
@@ -377,7 +392,7 @@ export function fail(input) {
 export function expected(parser, message) {
   return function(input) {
     const result = parse(parser, input);
-    return isError(result) ? error(result.input, message) : result;
+    return isError(result) ? result.withExpected(message) : result;
   };
 }
 
