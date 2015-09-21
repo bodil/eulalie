@@ -223,6 +223,7 @@
     }
   },
   "dependencies": {
+    "chalk": "^1.1.1",
     "is-generator-function": "^1.0.3",
     "is-iterable": "^1.0.2",
     "is-iterator-like": "^1.0.4"

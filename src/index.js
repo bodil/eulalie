@@ -2,6 +2,7 @@ import isGeneratorFunction from "is-generator-function";
 import isIterable from "is-iterable";
 import isIteratorLike from "is-iterator-like";
 import * as stringOps from "./string";
+import chalk from "chalk";
 
 function isGen(v) {
   if (regeneratorRuntime) {
@@ -123,18 +124,28 @@ class ParseError extends Error {
     return new ParseError(this.input, eP, this.fatal);
   }
 
-  get message() {
+  formatError(colours) {
+    const c = new chalk.constructor({enabled: Boolean(colours)});
     const quote = (s) => `"${s}"`;
     const exp = (e) => [...e].join(" or ");
-    return `expected ${exp(this.expected)}, saw ${this.input.atEnd() ? "EOF" : quote(stringOps.nextOnLine(6, this.input.buffer, this.input.cursor))}`;
+    return c.cyan("Expected ") + c.white.bold(exp(this.expected))
+      + c.cyan(", saw ") + c.white.bold(
+        this.input.atEnd() ? "EOF"
+      : quote(stringOps.nextOnLine(6, this.input.buffer, this.input.cursor))
+      );
   }
 
-  print() {
+  get message() {
+    return this.formatError();
+  }
+
+  print(colours) {
+    const c = new chalk.constructor({enabled: Boolean(colours)});
     const {line, row, column} = stringOps.findLine(this.input.buffer, this.input.cursor);
-    const header = `At line ${row}, column ${column}:\n\n`;
-    const arrowhead = `\n${stringOps.repeat(column, " ")}^\n`;
-    const arrowstem = `${stringOps.repeat(column, " ")}|\n`;
-    const msg = `Error: ${this.message}`;
+    const header = c.yellow(`At line ${row}, column ${column}:\n\n`);
+    const arrowhead = c.cyan(`\n${stringOps.repeat(column, " ")}^\n`);
+    const arrowstem = c.cyan(`${stringOps.repeat(column, " ")}|\n`);
+    const msg = c.cyan.bold("ERROR: ") + this.formatError(colours);
     if (line.trim().length) {
       return header + line + arrowhead + arrowstem + msg;
     }
