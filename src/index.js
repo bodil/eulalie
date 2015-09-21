@@ -378,10 +378,20 @@ export function unit(value, matched = "") {
 }
 
 /**
- * The {@link fail} parser will just immediately without consuming any input.
+ * The {@link fail} parser will just fail immediately without consuming any
+ * input.
  */
 export function fail(input) {
   return error(input);
+}
+
+/**
+ * The {@link failAt} parser will fail immediately without consuming any input,
+ * but will report the failure at the provided input position.
+ * @arg {Stream} input
+ */
+export function failAt(input) {
+  return (_) => error(input);
 }
 
 /**
