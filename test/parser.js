@@ -79,7 +79,6 @@ describe("basic combinators", () => {
     assert.equal(r1.matched, "");
     assert.equal(r1.value, null);
     const r2 = p.parse(p.eof, p.stream("ohai"));
-    console.log(r2);
     assert(p.isError(r2), "parser output is not ParseError");
     assert.deepEqual([...r2.expected], ["end of file"]);
   });
