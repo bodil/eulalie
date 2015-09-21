@@ -269,12 +269,12 @@ export function seq(parser, callback) {
       const runP = (input, res) => {
         const next = iter.next(res !== undefined ? res : null);
         if (next.done) {
-          return result(next.value, input, res.start, res.matched);
+          return result(next.value, input, start, res.matched);
         }
         const out = parse(next.value, input);
         if (isResult(out)) {
           const matched = res === undefined ? out.matched : res.matched + out.matched;
-          return runP(out.next, result(out.value, out.next, start, matched));
+          return runP(out.next, result(out.value, out.next, out.start, matched));
         }
         if (isError(out)) {
           return out;
