@@ -329,7 +329,18 @@ lololololol
 ^
 |
 Error: expected "omg", saw "lololo..."`);
+
+    const r4 = p.parse(parser, p.stream("omg\nomg omg lol"));
+    assert(p.isError(r4), "parser output is not ParseError");
+    assert.equal(r4.print(), `At line 1, column 8:
+
+omg omg lol
+        ^
+        |
+Error: expected "omg", saw "lol"`);
   });
+
+
   it("escalates errors past a cut", () => {
     const p1 = p.cut(p.string("hai"), function*() {
       yield p.spaces;
