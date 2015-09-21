@@ -434,6 +434,14 @@ export function maybe(parser) {
   return either(parser, unit(""));
 }
 
+/**
+ * Matches the end of the stream.
+ */
+export const eof = expected(
+  (input) => input.atEnd() ? result(null, input, input, "") : error(input),
+  "end of file"
+);
+
 
 
 /**
