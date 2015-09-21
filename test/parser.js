@@ -308,36 +308,36 @@ describe("error reporting", () => {
 
     const r1 = p.parse(parser, p.stream("omg\nomg\nomg\nlol\nomg\n"));
     assert(p.isError(r1), "parser output is not ParseError");
-    assert.equal(r1.print(), `At line 3, column 0:
+    assert.equal(r1.print(), `At line 4, column 0:
 
 lol
 ^
 |
-Error: expected "omg", saw "lol"`);
+ERROR: Expected "omg", saw "lol"`);
 
     const r2 = p.parse(parser, p.stream("omg\nomg\nomg\n"));
     assert(p.isError(r2), "parser output is not ParseError");
-    assert.equal(r2.print(), `At line 3, column 0:
+    assert.equal(r2.print(), `At line 4, column 0:
 
-Error: expected "omg", saw EOF`);
+ERROR: Expected "omg", saw EOF`);
 
     const r3 = p.parse(parser, p.stream("omg\nomg\nomg\nlololololol\nomg\n"));
     assert(p.isError(r3), "parser output is not ParseError");
-    assert.equal(r3.print(), `At line 3, column 0:
+    assert.equal(r3.print(), `At line 4, column 0:
 
 lololololol
 ^
 |
-Error: expected "omg", saw "lololo..."`);
+ERROR: Expected "omg", saw "lololo..."`);
 
     const r4 = p.parse(parser, p.stream("omg\nomg omg lol"));
     assert(p.isError(r4), "parser output is not ParseError");
-    assert.equal(r4.print(), `At line 1, column 8:
+    assert.equal(r4.print(), `At line 2, column 8:
 
 omg omg lol
         ^
         |
-Error: expected "omg", saw "lol"`);
+ERROR: Expected "omg", saw "lol"`);
   });
 
 
@@ -363,11 +363,11 @@ Error: expected "omg", saw "lol"`);
     const r1 = p.parse(parser, p.stream("wat"));
     assert(p.isError(r1), "parser output is not ParseError");
     assert.deepEqual([...r1.expected], [`"hai"`, `"lol"`]);
-    assert.equal(r1.print(), `At line 0, column 0:
+    assert.equal(r1.print(), `At line 1, column 0:
 
 wat
 ^
 |
-Error: expected "hai" or "lol", saw "wat"`);
+ERROR: Expected "hai" or "lol", saw "wat"`);
   });
 });

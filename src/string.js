@@ -16,7 +16,7 @@ function findLineEnd(s, i) {
 }
 
 function findLineNumber(s, i) {
-  let pos = i, l = 0;
+  let pos = i, l = 1;
   while (pos >= 0) {
     pos--;
     if (s[pos] === "\n") {
