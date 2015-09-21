@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Class: ParseResult</title>
+    <title>JSDoc: Source: string.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,249 +17,85 @@
 
 <div id="main">
 
-    <h1 class="page-title">Class: ParseResult</h1>
+    <h1 class="page-title">Source: string.js</h1>
 
     
 
 
 
-
-<section>
-
-<header>
     
-        <h2>ParseResult</h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-
-    
-
-    <h4 class="name" id="ParseResult"><span class="type-signature"></span>new ParseResult<span class="signature">(value, next, start, matched)</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-<div class="description">
-    <p>A <a href="ParseResult.html">ParseResult</a> holds the result of a successful parse operation. It contains
-the value which was parsed, a <a href="Stream.html">Stream</a> pointing to the remaining unconsumed
-input, and some useful metadata.</p>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>value</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">any</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>The value which this parse operation produced.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>next</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="Stream.html">Stream</a></span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>The position if the remainder of the input stream.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>start</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="Stream.html">Stream</a></span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>The position at which this parser began parsing.</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>matched</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="global.html#string">string</a></span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>The exact string this parser consumed.</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line166">line 166</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    </div>
-
-    
-
-    
-
-    
-
-     
-
-    
-
-    
-
-    
-
-    
-
-    
-</article>
-
-</section>
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>function findLineStart(s, i) {
+  let pos = i;
+  while (pos >= 0 &amp;&amp; s[pos] !== "\n") {
+    pos--;
+  }
+  pos++;
+  return {index: pos, column: i - pos};
+}
+
+function findLineEnd(s, i) {
+  let pos = i;
+  while (pos &lt; s.length &amp;&amp; s[pos] !== "\n") {
+    pos++;
+  }
+  return pos;
+}
+
+function findLineNumber(s, i) {
+  let pos = i, l = 1;
+  while (pos >= 0) {
+    pos--;
+    if (s[pos] === "\n") {
+      l++;
+    }
+  }
+  return l;
+}
+
+/**
+ * Given a string and an index, return the line number, column position, and
+ * the whole line at that index.
+ * @arg s - The string to look into.
+ * @arg i - The index into the string.
+ * @returns {object} - An object containing the line, row and column.
+ */
+export function findLine(s, i) {
+  const pos = i > s.length ? s.length - 1 : i;
+  const {index: start, column} = findLineStart(s, pos);
+  const end = findLineEnd(s, pos);
+  const row = findLineNumber(s, pos);
+  return {row, column, line: s.slice(start, end)};
+}
+
+/**
+ * Repeat a string `n` times.
+ */
+export function repeat(n, s) {
+  return n > 0 ? s + repeat(n - 1, s) : "";
+}
+
+/**
+ * Returns the next `n` characters from the string, starting at index `i`,
+ * or until a newline. Include a concatenation marker if we didn't hit a
+ * newline.
+ */
+export function nextOnLine(n, s, i) {
+  let ct = 0, pos = i, out = "";
+  while (ct &lt; n &amp;&amp; s[pos] !== "\n" &amp;&amp; pos &lt; s.length) {
+    out += s[pos];
+    pos++;
+    ct++;
+  }
+  if (s[pos] !== "\n" &amp;&amp; pos &lt; s.length) {
+    out += "...";
+  }
+  return out;
+}
+</code></pre>
+        </article>
+    </section>
 
 
 

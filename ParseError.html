@@ -40,7 +40,7 @@
 
     
 
-    <h4 class="name" id="ParseError"><span class="type-signature"></span>new ParseError<span class="signature">(input, message)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="ParseError"><span class="type-signature"></span>new ParseError<span class="signature">(input, expected, fatal)</span><span class="type-signature"></span></h4>
 
     
 
@@ -107,13 +107,361 @@ position at which the parser failed, along with an optional error message.</p>
 
         <tr>
             
-                <td class="name"><code>message</code></td>
+                <td class="name"><code>expected</code></td>
             
 
             <td class="type">
             
                 
 <span class="param-type"><a href="global.html#string">string</a></span>
+|
+
+<span class="param-type">Set</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>fatal</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>true if this error should terminate parsing immediately.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line82">line 82</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    </div>
+
+    
+
+    
+
+    
+
+     
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    <h4 class="name" id="escalate"><span class="type-signature"></span>escalate<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Return a copy of this error with the fatal property set to true.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line104">line 104</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="extend"><span class="type-signature"></span>extend<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Create an aggregate error by adding another error to the current one.
+If the new error occurs before the current in the buffer, it is simply
+ignored, and the result will be the current error. If it's at the same
+position, we return a new error containing the union of the two errors'
+expected messages. If it's ahead of the current error, we discard the
+current and return the new error unchanged.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line116">line 116</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="withExpected"><span class="type-signature"></span>withExpected<span class="signature">(expected)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+<div class="description">
+    <p>Return a copy of this error, with the provided expected value
+in place of the current value.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>expected</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#string">string</a></span>
+|
+
+<span class="param-type">Set</span>
 
 
             
@@ -164,7 +512,7 @@ position at which the parser failed, along with an optional error message.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line69">line 69</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line97">line 97</a>
     </li></ul></dd>
     
 
@@ -190,21 +538,7 @@ position at which the parser failed, along with an optional error message.</p>
 
 
 
-    
-    </div>
-
-    
-
-    
-
-    
-
-     
-
-    
-
-    
-
+        
     
 
     
@@ -220,13 +554,13 @@ position at which the parser failed, along with an optional error message.</p>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ParseError.html">ParseError</a></li><li><a href="ParseResult.html">ParseResult</a></li><li><a href="Stream.html">Stream</a></li></ul><h3>Global</h3><ul><li><a href="global.html#alphanum">alphanum</a></li><li><a href="global.html#char">char</a></li><li><a href="global.html#digit">digit</a></li><li><a href="global.html#either">either</a></li><li><a href="global.html#expected">expected</a></li><li><a href="global.html#fail">fail</a></li><li><a href="global.html#float">float</a></li><li><a href="global.html#int">int</a></li><li><a href="global.html#isAlphanum">isAlphanum</a></li><li><a href="global.html#isDigit">isDigit</a></li><li><a href="global.html#isLetter">isLetter</a></li><li><a href="global.html#isLower">isLower</a></li><li><a href="global.html#isSpace">isSpace</a></li><li><a href="global.html#isUpper">isUpper</a></li><li><a href="global.html#item">item</a></li><li><a href="global.html#letter">letter</a></li><li><a href="global.html#lower">lower</a></li><li><a href="global.html#many">many</a></li><li><a href="global.html#many1">many1</a></li><li><a href="global.html#many1A">many1A</a></li><li><a href="global.html#manyA">manyA</a></li><li><a href="global.html#maybe">maybe</a></li><li><a href="global.html#not">not</a></li><li><a href="global.html#notAlphanum">notAlphanum</a></li><li><a href="global.html#notChar">notChar</a></li><li><a href="global.html#notDigit">notDigit</a></li><li><a href="global.html#notLetter">notLetter</a></li><li><a href="global.html#notLower">notLower</a></li><li><a href="global.html#notSpace">notSpace</a></li><li><a href="global.html#notSpaces">notSpaces</a></li><li><a href="global.html#notSpaces1">notSpaces1</a></li><li><a href="global.html#notUpper">notUpper</a></li><li><a href="global.html#parse">parse</a></li><li><a href="global.html#quotedString">quotedString</a></li><li><a href="global.html#sat">sat</a></li><li><a href="global.html#seq">seq</a></li><li><a href="global.html#space">space</a></li><li><a href="global.html#spaces">spaces</a></li><li><a href="global.html#spaces1">spaces1</a></li><li><a href="global.html#str">str</a></li><li><a href="global.html#stream">stream</a></li><li><a href="global.html#string">string</a></li><li><a href="global.html#unit">unit</a></li><li><a href="global.html#upper">upper</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ParseError.html">ParseError</a></li><li><a href="ParseResult.html">ParseResult</a></li><li><a href="Stream.html">Stream</a></li></ul><h3>Global</h3><ul><li><a href="global.html#alphanum">alphanum</a></li><li><a href="global.html#char">char</a></li><li><a href="global.html#cut">cut</a></li><li><a href="global.html#digit">digit</a></li><li><a href="global.html#either">either</a></li><li><a href="global.html#eof">eof</a></li><li><a href="global.html#expected">expected</a></li><li><a href="global.html#fail">fail</a></li><li><a href="global.html#failAt">failAt</a></li><li><a href="global.html#findLine">findLine</a></li><li><a href="global.html#float">float</a></li><li><a href="global.html#int">int</a></li><li><a href="global.html#isAlphanum">isAlphanum</a></li><li><a href="global.html#isDigit">isDigit</a></li><li><a href="global.html#isLetter">isLetter</a></li><li><a href="global.html#isLower">isLower</a></li><li><a href="global.html#isSpace">isSpace</a></li><li><a href="global.html#isUpper">isUpper</a></li><li><a href="global.html#item">item</a></li><li><a href="global.html#letter">letter</a></li><li><a href="global.html#lower">lower</a></li><li><a href="global.html#makeParser">makeParser</a></li><li><a href="global.html#many">many</a></li><li><a href="global.html#many1">many1</a></li><li><a href="global.html#many1A">many1A</a></li><li><a href="global.html#manyA">manyA</a></li><li><a href="global.html#maybe">maybe</a></li><li><a href="global.html#nextOnLine">nextOnLine</a></li><li><a href="global.html#not">not</a></li><li><a href="global.html#notAlphanum">notAlphanum</a></li><li><a href="global.html#notChar">notChar</a></li><li><a href="global.html#notDigit">notDigit</a></li><li><a href="global.html#notLetter">notLetter</a></li><li><a href="global.html#notLower">notLower</a></li><li><a href="global.html#notSpace">notSpace</a></li><li><a href="global.html#notSpaces">notSpaces</a></li><li><a href="global.html#notSpaces1">notSpaces1</a></li><li><a href="global.html#notUpper">notUpper</a></li><li><a href="global.html#parse">parse</a></li><li><a href="global.html#quotedString">quotedString</a></li><li><a href="global.html#repeat">repeat</a></li><li><a href="global.html#sat">sat</a></li><li><a href="global.html#seq">seq</a></li><li><a href="global.html#space">space</a></li><li><a href="global.html#spaces">spaces</a></li><li><a href="global.html#spaces1">spaces1</a></li><li><a href="global.html#str">str</a></li><li><a href="global.html#stream">stream</a></li><li><a href="global.html#string">string</a></li><li><a href="global.html#unit">unit</a></li><li><a href="global.html#upper">upper</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0-dev</a> on Sat Sep 05 2015 18:46:59 GMT+0100 (BST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0-dev</a> on Mon Sep 21 2015 17:35:14 GMT+0100 (BST)
 </footer>
 
 <script> prettyPrint(); </script>
