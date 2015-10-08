@@ -1,7 +1,7 @@
 {
   "name": "eulalie",
   "version": "2.5.2",
-  "description": "ES6 flavoured arser combinators",
+  "description": "ES6 flavoured parser combinators",
   "main": "index.js",
   "scripts": {
     "compile": "babel src --out-dir .",
