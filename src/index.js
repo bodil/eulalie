@@ -5,11 +5,14 @@ import * as stringOps from "./string";
 import chalk from "chalk";
 
 function isGen(v) {
-  if (regeneratorRuntime) {
-    /* global regeneratorRuntime */
-    return regeneratorRuntime.isGeneratorFunction(v);
+  try {
+    if (regeneratorRuntime) {
+      /* global regeneratorRuntime */
+      return regeneratorRuntime.isGeneratorFunction(v);
+    }
+  } catch(e) {
+    return isGeneratorFunction(v);
   }
-  return isGeneratorFunction(v);
 }
 
 class Stream {
