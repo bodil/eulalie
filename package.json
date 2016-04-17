@@ -234,7 +234,7 @@
     }
   },
   "dependencies": {
-    "chalk": "1.1.1",
+    "chalk": "1.1.2",
     "is-generator-function": "1.0.3",
     "is-iterable": "1.1.0",
     "is-iterator-like": "1.0.4"
