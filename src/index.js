@@ -223,7 +223,7 @@ export function parse(parser, input) {
 }
 
 /**
- * Takes a parser and returns function which takes a string as its only
+ * Takes a parser and returns a function which takes a string as its only
  * argument, runs it through the provided parser, and either returns the value
  * of the {@link ParseResult} object it returns, or throws the
  * {@link ParseError} object if it returns an error.
