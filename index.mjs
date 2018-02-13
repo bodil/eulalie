@@ -10,7 +10,7 @@ function isGen(v) {
       /* global regeneratorRuntime */
       return regeneratorRuntime.isGeneratorFunction(v);
     }
-  } catch(e) {
+  } catch (e) {
     return isGeneratorFunction(v);
   }
 }
@@ -86,8 +86,8 @@ class ParseError extends Error {
     super();
     this.name = "Eulalie.ParseError";
     this.input = input;
-    this.expected = expected instanceof Set ? expected
-                  : new Set(expected ? [expected] : []);
+    this.expected =
+      expected instanceof Set ? expected : new Set(expected ? [expected] : []);
     this.fatal = fatal === true;
     Object.freeze(this);
   }
@@ -128,14 +128,19 @@ class ParseError extends Error {
   }
 
   formatError(colours) {
-    const c = new chalk.constructor({enabled: Boolean(colours)});
-    const quote = (s) => `"${s}"`;
-    const exp = (e) => [...e].join(" or ");
-    return c.cyan("Expected ") + c.white.bold(exp(this.expected))
-      + c.cyan(", saw ") + c.white.bold(
-        this.input.atEnd() ? "EOF"
-      : quote(stringOps.nextOnLine(6, this.input.buffer, this.input.cursor))
-      );
+    const c = new chalk.constructor({ enabled: Boolean(colours) });
+    const quote = s => `"${s}"`;
+    const exp = e => [...e].join(" or ");
+    return (
+      c.cyan("Expected ") +
+      c.white.bold(exp(this.expected)) +
+      c.cyan(", saw ") +
+      c.white.bold(
+        this.input.atEnd()
+          ? "EOF"
+          : quote(stringOps.nextOnLine(6, this.input.buffer, this.input.cursor))
+      )
+    );
   }
 
   get message() {
@@ -143,8 +148,11 @@ class ParseError extends Error {
   }
 
   print(colours) {
-    const c = new chalk.constructor({enabled: Boolean(colours)});
-    const {line, row, column} = stringOps.findLine(this.input.buffer, this.input.cursor);
+    const c = new chalk.constructor({ enabled: Boolean(colours) });
+    const { line, row, column } = stringOps.findLine(
+      this.input.buffer,
+      this.input.cursor
+    );
     const header = c.yellow(`At line ${row}, column ${column}:\n\n`);
     const arrowhead = c.cyan(`\n${stringOps.repeat(column, " ")}^\n`);
     const arrowstem = c.cyan(`${stringOps.repeat(column, " ")}|\n`);
@@ -176,8 +184,6 @@ class ParseResult {
   }
 }
 
-
-
 export function isStream(o) {
   return o.hasOwnProperty("name") && o.name === "Eulalie.ParseStream";
 }
@@ -189,8 +195,6 @@ export function isError(o) {
 export function isResult(o) {
   return o.hasOwnProperty("name") && o.name === "Eulalie.ParseResult";
 }
-
-
 
 export function error(input, message) {
   return new ParseError(input, message);
@@ -207,8 +211,6 @@ export function result(value, next, start, matched) {
 export function stream(s) {
   return new Stream(s);
 }
-
-
 
 /**
  * Perform a parse operation.
@@ -241,14 +243,10 @@ export function makeParser(p) {
   };
 }
 
-
-
 function badValue(v) {
   const o = require("util").inspect(v);
   return new Error(`Parser returned unexpected value: ${o}`);
 }
-
-
 
 /**
  * The {@link seq} combinator takes a parser, and a function which will receive the
@@ -267,7 +265,7 @@ function badValue(v) {
  */
 export function seq(parser, callback) {
   if (isGen(parser)) {
-    return (start) => {
+    return start => {
       const iter = parser();
       const runP = (input, res) => {
         const next = iter.next(res !== undefined ? res : null);
@@ -276,8 +274,12 @@ export function seq(parser, callback) {
         }
         const out = parse(next.value, input);
         if (isResult(out)) {
-          const matched = res === undefined ? out.matched : res.matched + out.matched;
-          return runP(out.next, result(out.value, out.next, out.start, matched));
+          const matched =
+            res === undefined ? out.matched : res.matched + out.matched;
+          return runP(
+            out.next,
+            result(out.value, out.next, out.start, matched)
+          );
         }
         if (isError(out)) {
           return out;
@@ -288,7 +290,7 @@ export function seq(parser, callback) {
     };
   }
 
-  return (input) => {
+  return input => {
     const out = parse(parser, input);
     if (isResult(out)) {
       const next = parse(callback(out.value, input), out.next);
@@ -323,13 +325,13 @@ export function either(p1, p2) {
     return either(p1());
   }
   if (isIteratorLike(p1)) {
-    const {value, done} = p1.next();
+    const { value, done } = p1.next();
     return done ? fail : either(value, either(p1));
   }
   if (isIterable(p1)) {
     return either(p1[Symbol.iterator]());
   }
-  return (input) => {
+  return input => {
     const r1 = parse(p1, input);
     if (isResult(r1)) {
       return r1;
@@ -371,7 +373,7 @@ export function cut(parser, parser2) {
   if (parser2 !== undefined) {
     return seq(p, () => cut(parser2));
   }
-  return (input) => {
+  return input => {
     const r = parse(p, input);
     return isError(r) ? r.escalate() : r;
   };
@@ -388,7 +390,7 @@ export function cut(parser, parser2) {
  *                          {@link ParseResult} here. This is usually not necessary.
  */
 export function unit(value, matched = "") {
-  return (input) => result(value, input, input, matched);
+  return input => result(value, input, input, matched);
 }
 
 /**
@@ -405,7 +407,7 @@ export function fail(input) {
  * @arg {Stream} input
  */
 export function failAt(input) {
-  return (_) => error(input);
+  return _ => error(input);
 }
 
 /**
@@ -425,7 +427,9 @@ export function expected(parser, message) {
  * returns it as its result.
  */
 export function item(input) {
-  return input.atEnd() ? error(input) : result(input.get(), input.next(), input, input.get());
+  return input.atEnd()
+    ? error(input)
+    : result(input.get(), input.next(), input, input.get());
 }
 
 /**
@@ -435,7 +439,10 @@ export function item(input) {
  * @arg {function(string): boolean} predicate
  */
 export function sat(predicate) {
-  return seq(item, (value, start) => predicate(value) ? unit(value) : () => fail(start));
+  return seq(
+    item,
+    (value, start) => (predicate(value) ? unit(value) : () => fail(start))
+  );
 }
 
 /**
@@ -452,11 +459,9 @@ export function maybe(parser) {
  * Matches the end of the stream.
  */
 export const eof = expected(
-  (input) => input.atEnd() ? result(null, input, input, "") : error(input),
+  input => (input.atEnd() ? result(null, input, input, "") : error(input)),
   "end of file"
 );
-
-
 
 /**
  * The {@link manyA} combinator takes a parser, and returns a new parser which will
@@ -476,10 +481,8 @@ export function manyA(parser) {
  * @arg {Parser} parser
  */
 export function many1A(parser) {
-  return seq(parser, (head) => seq(manyA(parser), (tail) => unit([head, ...tail])));
+  return seq(parser, head => seq(manyA(parser), tail => unit([head, ...tail])));
 }
-
-
 
 /**
  * The {@link many} combinator takes a parser which must return a string value, and
@@ -498,10 +501,8 @@ export function many(parser) {
  * @arg {Parser} parser
  */
 export function many1(parser) {
-  return seq(parser, (head) => seq(many(parser), (tail) => unit(head + tail)));
+  return seq(parser, head => seq(many(parser), tail => unit(head + tail)));
 }
-
-
 
 /**
  * The {@link char} parser constructor returns a parser which matches only the specified
@@ -509,7 +510,7 @@ export function many1(parser) {
  * @arg {string} c - The character this parser will match.
  */
 export function char(c) {
-  return expected(sat((i) => i === c), `"${c}"`);
+  return expected(sat(i => i === c), `"${c}"`);
 }
 
 /**
@@ -518,7 +519,7 @@ export function char(c) {
  * @arg {string} c - The character this parser won't match.
  */
 export function notChar(c) {
-  return expected(sat((i) => i !== c), `anything but "${c}"`);
+  return expected(sat(i => i !== c), `anything but "${c}"`);
 }
 
 /**
@@ -536,22 +537,20 @@ export function string(s) {
   return expected(stringP(s), `"${s}"`);
 }
 
-
-
 /** Returns true if `c` is a digit. */
-export const isDigit = (c) => /^\d$/.test(c);
+export const isDigit = c => /^\d$/.test(c);
 /** Returns true if `c` is whitespace. */
-export const isSpace = (c) => /^\s$/.test(c);
+export const isSpace = c => /^\s$/.test(c);
 /** Returns true if `c` is a letter, a digit or the underscore character. */
-export const isAlphanum = (c) => /^\w$/.test(c);
+export const isAlphanum = c => /^\w$/.test(c);
 /** Returns true if `c` is an ASCII letter. */
-export const isLetter = (c) => /^[a-zA-Z]$/.test(c);
+export const isLetter = c => /^[a-zA-Z]$/.test(c);
 /** Returns true if `c` is an upper case ASCII letter. */
-export const isUpper = (c) => isLetter(c) && c == c.toUpperCase();
+export const isUpper = c => isLetter(c) && c == c.toUpperCase();
 /** Returns true if `c` is a lower case ASCII letter. */
-export const isLower = (c) => isLetter(c) && c == c.toLowerCase();
+export const isLower = c => isLetter(c) && c == c.toLowerCase();
 /** Takes a predicate function and returns its inverse. */
-export const not = (f) => (c) => !f(c);
+export const not = f => c => !f(c);
 
 /** Parses a single digit using {@link isDigit} as a predicate. */
 export const digit = expected(sat(isDigit), "a digit");
@@ -569,15 +568,27 @@ export const lower = expected(sat(isLower), "a lower case letter");
 /** Parses a single character that is not a digit using {@link isDigit} as a predicate. */
 export const notDigit = expected(sat(not(isDigit)), "a non-digit");
 /** Parses a single non-whitespace character using {@link isSpace} as a predicate. */
-export const notSpace = expected(sat(not(isSpace)), "a non-whitespace character");
+export const notSpace = expected(
+  sat(not(isSpace)),
+  "a non-whitespace character"
+);
 /** Parses a single non-word character using {@link isAlphanum} as a predicate. */
-export const notAlphanum = expected(sat(not(isAlphanum)), "a non-word character");
+export const notAlphanum = expected(
+  sat(not(isAlphanum)),
+  "a non-word character"
+);
 /** Parses a single non-letter using {@link isLetter} as a predicate. */
 export const notLetter = expected(sat(not(isLetter)), "a non-letter");
 /** Parses a single character that is not an upper case letter using {@link isUpper} as a predicate. */
-export const notUpper = expected(sat(not(isUpper)), "anything but an upper case letter");
+export const notUpper = expected(
+  sat(not(isUpper)),
+  "anything but an upper case letter"
+);
 /** Parses a single character that is not a lower case letter using {@link isLower} as a predicate. */
-export const notLower = expected(sat(not(isLower)), "anything but a lower case letter");
+export const notLower = expected(
+  sat(not(isLower)),
+  "anything but a lower case letter"
+);
 
 /** Parses zero or more whitespace characters. */
 export const spaces = many(space);
@@ -587,9 +598,10 @@ export const spaces1 = expected(many1(space), "whitespace");
 /** Parses zero or more non-whitespace characters. */
 export const notSpaces = many(sat(not(isSpace)));
 /** Parses one or more non-whitespace characters. */
-export const notSpaces1 = expected(many1(sat(not(isSpace))), "one or more non-whitespace characters");
-
-
+export const notSpaces1 = expected(
+  many1(sat(not(isSpace))),
+  "one or more non-whitespace characters"
+);
 
 /**
  * Given a list of parsers which return string values, builds a parser which
@@ -597,48 +609,53 @@ export const notSpaces1 = expected(many1(sat(not(isSpace))), "one or more non-wh
  * the sequence.
  */
 export function str([head, ...tail]) {
-  return tail.length ? seq(head, (v) => seq(str(tail), (vs) => unit(v + vs))) : head;
+  return tail.length
+    ? seq(head, v => seq(str(tail), vs => unit(v + vs)))
+    : head;
 }
 
-
-
 /** Parses a positive or negative integer. */
-export const int = expected(seq(function*() {
-  const r = yield str([
-    maybe(char("-")),
-    many1(digit)
-  ]);
-  const n = parseInt(r.value, 10);
-  if (isNaN(n)) {
-    yield fail;
-  }
-  return n;
-}), "an integer");
+export const int = expected(
+  seq(function*() {
+    const r = yield str([maybe(char("-")), many1(digit)]);
+    const n = parseInt(r.value, 10);
+    if (isNaN(n)) {
+      yield fail;
+    }
+    return n;
+  }),
+  "an integer"
+);
 
 /** Parses a positive or negative floating point number. */
-export const float = expected(seq(function*() {
-  const r = yield str([
-    maybe(char("-")),
-    many(digit),
-    maybe(str([char("."), many1(digit)]))
-  ]);
-  const n = parseFloat(r.value);
-  if (isNaN(n)) {
-    yield fail;
-  }
-  return n;
-}), "a number");
+export const float = expected(
+  seq(function*() {
+    const r = yield str([
+      maybe(char("-")),
+      many(digit),
+      maybe(str([char("."), many1(digit)]))
+    ]);
+    const n = parseFloat(r.value);
+    if (isNaN(n)) {
+      yield fail;
+    }
+    return n;
+  }),
+  "a number"
+);
 
 /** Parses a double quoted string, with support for escaping double quotes
  * inside it, and returns the inner string. Does not perform any other form
  * of string escaping.
  */
-export const quotedString = expected(seq(function*() {
-  yield char("\"");
-  const {value: s} = yield many(either(
-    seq(char("\\"), () => item),
-    notChar("\"")
-  ));
-  yield char("\"");
-  return s;
-}), "a quoted string");
+export const quotedString = expected(
+  seq(function*() {
+    yield char('"');
+    const { value: s } = yield many(
+      either(seq(char("\\"), () => item), notChar('"'))
+    );
+    yield char('"');
+    return s;
+  }),
+  "a quoted string"
+);

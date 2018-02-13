@@ -4,7 +4,7 @@ function findLineStart(s, i) {
     pos--;
   }
   pos++;
-  return {index: pos, column: i - pos};
+  return { index: pos, column: i - pos };
 }
 
 function findLineEnd(s, i) {
@@ -16,7 +16,8 @@ function findLineEnd(s, i) {
 }
 
 function findLineNumber(s, i) {
-  let pos = i, l = 1;
+  let pos = i,
+    l = 1;
   while (pos >= 0) {
     pos--;
     if (s[pos] === "\n") {
@@ -35,10 +36,10 @@ function findLineNumber(s, i) {
  */
 export function findLine(s, i) {
   const pos = i > s.length ? s.length - 1 : i;
-  const {index: start, column} = findLineStart(s, pos);
+  const { index: start, column } = findLineStart(s, pos);
   const end = findLineEnd(s, pos);
   const row = findLineNumber(s, pos);
-  return {row, column, line: s.slice(start, end)};
+  return { row, column, line: s.slice(start, end) };
 }
 
 /**
@@ -54,7 +55,9 @@ export function repeat(n, s) {
  * newline.
  */
 export function nextOnLine(n, s, i) {
-  let ct = 0, pos = i, out = "";
+  let ct = 0,
+    pos = i,
+    out = "";
   while (ct < n && s[pos] !== "\n" && pos < s.length) {
     out += s[pos];
     pos++;
