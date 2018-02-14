@@ -26,7 +26,7 @@
     
 
 
-    <h3>eulalie 1.0.1</h3>
+    <h3>eulalie 3.0.0</h3>
 
 
 
@@ -43,15 +43,19 @@
 
 
     <section>
-        <article><h1>eulalie</h1><p><a href="https://travis-ci.org/bodil/eulalie"><img src="https://travis-ci.org/bodil/eulalie.svg" alt="Build Status"></a></p>
+        <article><h1>eulalie</h1>
+<p><a href="https://travis-ci.org/bodil/eulalie"><img src="https://travis-ci.org/bodil/eulalie.svg" alt="Build Status"></a></p>
 <p>ES6 flavoured parser combinators.</p>
-<h2>Documentation</h2><p>Read the <a href="http://bodil.org/eulalie/">API documentation</a>.</p>
-<h2>Usage</h2><p>Eulalie works on the principle of constructing parsers from smaller
+<h2>Documentation</h2>
+<p>Read the <a href="http://bodil.org/eulalie/">API documentation</a>.</p>
+<h2>Usage</h2>
+<p>Eulalie works on the principle of constructing parsers from smaller
 parsers using various combinator functions.</p>
 <p>A parser is a function which takes an input <code>Stream</code>, and returns a
 <code>ParseResult</code> object if it matched the provided input, or a
 <code>ParseError</code> object if it didn't.</p>
-<h3>Data Types</h3><p>The <code>Stream</code> object just contains a string, and an index into this
+<h3>Data Types</h3>
+<p>The <code>Stream</code> object just contains a string, and an index into this
 string. We use this structure instead of passing strings around as
 input because string operations are expensive, while any operation on
 the <code>Stream</code> object can be performed in linear time, and while many
@@ -64,7 +68,8 @@ the substring that was <code>matched</code> by this parser (a string).</p>
 <p>Finally, a <code>ParseError</code> simply contains an <code>input</code> property (a
 <code>Stream</code>) which points to the exact position where the parsing failed,
 and an optional <code>message</code> (a string).</p>
-<h3>Parser Combinators</h3><p>The most basic parsers form the building blocks from which you can
+<h3>Parser Combinators</h3>
+<p>The most basic parsers form the building blocks from which you can
 assemble more complex parsers:</p>
 <ul>
 <li><code>unit(value)</code> makes a parser which doesn't consume input, just
@@ -76,14 +81,16 @@ returns it as a <code>ParseResult</code>.</li>
 </ul>
 <p>The two fundamental parser combinators are:</p>
 <ul>
-<li><p><code>seq(parser, next)</code> is used to combine multiple parsers in a
+<li>
+<p><code>seq(parser, next)</code> is used to combine multiple parsers in a
 sequence. It takes a parser, and a function <code>next(value)</code> which
 will be called with the result of the parser if it succeeded, and
 must return another parser, which will be run on the remaining
 input. The result of the combined parser will be the result of
 this last parser, or the first error encountered.</p>
 </li>
-<li><p><code>either(parser1, parser2)</code> makes a parser which will first try the
+<li>
+<p><code>either(parser1, parser2)</code> makes a parser which will first try the
 first provided parser, and returns its result if it succeeds. If
 it fails, it will run the second parser on the same input, and
 return its result directly, whether or not it succeeded.</p>
@@ -106,7 +113,8 @@ types, and their inverse counterparts, <code>notDigit</code>, <code>notSpace</co
 <code>notAlphanum</code>, <code>notLetter</code>, <code>notUpper</code> and <code>notLower</code>. There are also
 whitespace matchers <code>spaces</code> and <code>spaces1</code>, and their opposites,
 <code>notSpaces</code> and <code>notSpaces1</code>.</p>
-<h3>Generator Functions</h3><p>The basic combinators <code>seq</code> and <code>either</code> can also take a single
+<h3>Generator Functions</h3>
+<p>The basic combinators <code>seq</code> and <code>either</code> can also take a single
 generator function, which helps keep callback chains to a minimum. The
 job of this function is to <code>yield</code> parsers, which will pass their
 <code>ParseResult</code>s back to the generator. The final result value of the
@@ -124,19 +132,24 @@ p.seq(function*() {
   yield p.spaces1;
   const {value: right} = yield p.notSpaces1;
   return {left, right};
-});</code></pre><p>While you could also pass a generator to <code>either</code>, it will, unlike
+});
+</code></pre>
+<p>While you could also pass a generator to <code>either</code>, it will, unlike
 <code>seq</code>, accept any iterable, and just passing an array of parsers to
 try in sequence is generally better:</p>
 <pre class="prettyprint source lang-js"><code>p.either([
   p.string(&quot;omg&quot;),
   p.string(&quot;wtf&quot;),
   p.string(&quot;bbq&quot;)
-]);</code></pre><p>The result will be the result of the first parser to succeed.</p>
+]);
+</code></pre>
+<p>The result will be the result of the first parser to succeed.</p>
 <p>If you do provide a generator function to <code>either</code>, <code>yield</code> will not
 receive any values, and what you <code>return</code> will be ignored in favour of
 the result of the first parser you <code>yield</code> to succeed. But, seriously,
 just use arrays instead.</p>
-<h3>A Working Example</h3><p>This is how you might write a parser for the first line of an HTTP
+<h3>A Working Example</h3>
+<p>This is how you might write a parser for the first line of an HTTP
 request:</p>
 <pre class="prettyprint source lang-js"><code>import * as p from &quot;eulalie&quot;;
 
@@ -173,7 +186,10 @@ assert.deepEqual(result.value, {
   method: &quot;GET&quot;,
   path: &quot;/lol.gif&quot;,
   version: &quot;1.0&quot;
-});</code></pre><h2>Licence</h2><p>Copyright 2015 Bodil Stokke</p>
+});
+</code></pre>
+<h2>Licence</h2>
+<p>Copyright 2015 Bodil Stokke</p>
 <p>This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as
 published by the Free Software Foundation, either version 3 of the
@@ -183,8 +199,8 @@ WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 Lesser General Public License for more details.</p>
 <p>You should have received a copy of the GNU Lesser General Public
-License along with this program. If not, see</p>
-<p><http://www.gnu.org/licenses/>.</p></article>
+License along with this program. If not, see
+<a href="http:%5C/%5C/www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p></article>
     </section>
 
 
@@ -195,13 +211,13 @@ License along with this program. If not, see</p>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ParseError.html">ParseError</a></li><li><a href="ParseResult.html">ParseResult</a></li><li><a href="Stream.html">Stream</a></li></ul><h3>Global</h3><ul><li><a href="global.html#alphanum">alphanum</a></li><li><a href="global.html#char">char</a></li><li><a href="global.html#digit">digit</a></li><li><a href="global.html#either">either</a></li><li><a href="global.html#expected">expected</a></li><li><a href="global.html#fail">fail</a></li><li><a href="global.html#float">float</a></li><li><a href="global.html#int">int</a></li><li><a href="global.html#isAlphanum">isAlphanum</a></li><li><a href="global.html#isDigit">isDigit</a></li><li><a href="global.html#isLetter">isLetter</a></li><li><a href="global.html#isLower">isLower</a></li><li><a href="global.html#isSpace">isSpace</a></li><li><a href="global.html#isUpper">isUpper</a></li><li><a href="global.html#item">item</a></li><li><a href="global.html#letter">letter</a></li><li><a href="global.html#lower">lower</a></li><li><a href="global.html#many">many</a></li><li><a href="global.html#many1">many1</a></li><li><a href="global.html#many1A">many1A</a></li><li><a href="global.html#manyA">manyA</a></li><li><a href="global.html#maybe">maybe</a></li><li><a href="global.html#not">not</a></li><li><a href="global.html#notAlphanum">notAlphanum</a></li><li><a href="global.html#notChar">notChar</a></li><li><a href="global.html#notDigit">notDigit</a></li><li><a href="global.html#notLetter">notLetter</a></li><li><a href="global.html#notLower">notLower</a></li><li><a href="global.html#notSpace">notSpace</a></li><li><a href="global.html#notSpaces">notSpaces</a></li><li><a href="global.html#notSpaces1">notSpaces1</a></li><li><a href="global.html#notUpper">notUpper</a></li><li><a href="global.html#parse">parse</a></li><li><a href="global.html#quotedString">quotedString</a></li><li><a href="global.html#sat">sat</a></li><li><a href="global.html#seq">seq</a></li><li><a href="global.html#space">space</a></li><li><a href="global.html#spaces">spaces</a></li><li><a href="global.html#spaces1">spaces1</a></li><li><a href="global.html#str">str</a></li><li><a href="global.html#stream">stream</a></li><li><a href="global.html#string">string</a></li><li><a href="global.html#unit">unit</a></li><li><a href="global.html#upper">upper</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ParseError.html">ParseError</a></li><li><a href="ParseResult.html">ParseResult</a></li><li><a href="Stream.html">Stream</a></li></ul><h3>Global</h3><ul><li><a href="global.html#alphanum">alphanum</a></li><li><a href="global.html#char">char</a></li><li><a href="global.html#cut">cut</a></li><li><a href="global.html#digit">digit</a></li><li><a href="global.html#either">either</a></li><li><a href="global.html#eof">eof</a></li><li><a href="global.html#expected">expected</a></li><li><a href="global.html#fail">fail</a></li><li><a href="global.html#failAt">failAt</a></li><li><a href="global.html#findLine">findLine</a></li><li><a href="global.html#float">float</a></li><li><a href="global.html#int">int</a></li><li><a href="global.html#isAlphanum">isAlphanum</a></li><li><a href="global.html#isDigit">isDigit</a></li><li><a href="global.html#isLetter">isLetter</a></li><li><a href="global.html#isLower">isLower</a></li><li><a href="global.html#isSpace">isSpace</a></li><li><a href="global.html#isUpper">isUpper</a></li><li><a href="global.html#item">item</a></li><li><a href="global.html#letter">letter</a></li><li><a href="global.html#lower">lower</a></li><li><a href="global.html#makeParser">makeParser</a></li><li><a href="global.html#many">many</a></li><li><a href="global.html#many1">many1</a></li><li><a href="global.html#many1A">many1A</a></li><li><a href="global.html#manyA">manyA</a></li><li><a href="global.html#maybe">maybe</a></li><li><a href="global.html#nextOnLine">nextOnLine</a></li><li><a href="global.html#not">not</a></li><li><a href="global.html#notAlphanum">notAlphanum</a></li><li><a href="global.html#notChar">notChar</a></li><li><a href="global.html#notDigit">notDigit</a></li><li><a href="global.html#notLetter">notLetter</a></li><li><a href="global.html#notLower">notLower</a></li><li><a href="global.html#notSpace">notSpace</a></li><li><a href="global.html#notSpaces">notSpaces</a></li><li><a href="global.html#notSpaces1">notSpaces1</a></li><li><a href="global.html#notUpper">notUpper</a></li><li><a href="global.html#parse">parse</a></li><li><a href="global.html#quotedString">quotedString</a></li><li><a href="global.html#repeat">repeat</a></li><li><a href="global.html#sat">sat</a></li><li><a href="global.html#seq">seq</a></li><li><a href="global.html#space">space</a></li><li><a href="global.html#spaces">spaces</a></li><li><a href="global.html#spaces1">spaces1</a></li><li><a href="global.html#str">str</a></li><li><a href="global.html#stream">stream</a></li><li><a href="global.html#string">string</a></li><li><a href="global.html#unit">unit</a></li><li><a href="global.html#upper">upper</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0-dev</a> on Sat Sep 05 2015 18:38:36 GMT+0100 (BST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.0-dev</a> on Wed Feb 14 2018 15:23:13 GMT+0000 (GMT)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: index.js</title>
+    <title>JSDoc: Source: index.mjs</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: index.js</h1>
+    <h1 class="page-title">Source: index.mjs</h1>
 
     
 
@@ -29,16 +29,21 @@
             <pre class="prettyprint source linenums"><code>import isGeneratorFunction from "is-generator-function";
 import isIterable from "is-iterable";
 import isIteratorLike from "is-iterator-like";
+import * as stringOps from "./string";
+import chalk from "chalk";
 
 function isGen(v) {
-  if (regeneratorRuntime) {
-    /* global regeneratorRuntime */
-    return regeneratorRuntime.isGeneratorFunction(v);
+  try {
+    if (regeneratorRuntime) {
+      /* global regeneratorRuntime */
+      return regeneratorRuntime.isGeneratorFunction(v);
+    }
+  } catch (e) {
+    return isGeneratorFunction(v);
   }
-  return isGeneratorFunction(v);
 }
 
-export class Stream {
+class Stream {
   /**
    * A {@link Stream} is a structure containing a reference to a string, and a positional
    * index into that string. Three operations are permitted on it: reading the character
@@ -54,6 +59,7 @@ export class Stream {
    * @arg {number} cursor
    */
   constructor(buffer, cursor) {
+    this.name = "Eulalie.Stream";
     this.buffer = buffer;
     this.cursor = typeof cursor === "number" ? cursor : 0;
     Object.freeze(this);
@@ -85,30 +91,108 @@ export class Stream {
   atEnd() {
     return this.cursor >= this.buffer.length;
   }
+
+  /**
+   * Return `true` if this {@link Stream} is equal (determined by whether
+   * the buffer and cursor are equal) to the provided {@link Stream}.
+   * @arg {Stream} other
+   */
+  equal(other) {
+    return this.cursor === other.cursor &amp;&amp; this.buffer === other.buffer;
+  }
 }
 
-export class ParseError extends Error {
+class ParseError extends Error {
   /**
    * A {@link ParseError} signals a failed parse operation, and holds the {@link Stream}
    * position at which the parser failed, along with an optional error message.
    * @arg {Stream} input
-   * @arg {string} message
+   * @arg {(string|Set)} expected
+   * @arg {boolean} fatal - true if this error should terminate parsing immediately.
    */
-  constructor(input, expected) {
+  constructor(input, expected, fatal) {
     super();
-    this.name = "ParseError";
+    this.name = "Eulalie.ParseError";
     this.input = input;
-    this.expected = expected;
+    this.expected =
+      expected instanceof Set ? expected : new Set(expected ? [expected] : []);
+    this.fatal = fatal === true;
     Object.freeze(this);
   }
 
+  /**
+   * Return a copy of this error, with the provided expected value
+   * in place of the current value.
+   * @arg {string|Set} expected
+   */
+  withExpected(expected) {
+    return new ParseError(this.input, expected, this.fatal);
+  }
+
+  /**
+   * Return a copy of this error with the {@link fatal} property set to true.
+   */
+  escalate() {
+    return new ParseError(this.input, this.expected, true);
+  }
+
+  /**
+   * Create an aggregate error by adding another error to the current one.
+   * If the new error occurs before the current in the buffer, it is simply
+   * ignored, and the result will be the current error. If it's at the same
+   * position, we return a new error containing the union of the two errors'
+   * expected messages. If it's ahead of the current error, we discard the
+   * current and return the new error unchanged.
+   */
+  extend(e) {
+    if (this.input.cursor &lt; e.input.cursor) {
+      return e;
+    }
+    if (this.input.cursor > e.input.cursor) {
+      return this;
+    }
+    const eP = new Set([...this.expected].concat([...e.expected]));
+    return new ParseError(this.input, eP, this.fatal);
+  }
+
+  formatError(colours) {
+    const c = new chalk.constructor({ enabled: Boolean(colours) });
+    const quote = s => `"${s}"`;
+    const exp = e => [...e].join(" or ");
+    return (
+      c.cyan("Expected ") +
+      c.white.bold(exp(this.expected)) +
+      c.cyan(", saw ") +
+      c.white.bold(
+        this.input.atEnd()
+          ? "EOF"
+          : quote(stringOps.nextOnLine(6, this.input.buffer, this.input.cursor))
+      )
+    );
+  }
+
   get message() {
-    const quote = (s) => `"${s}"`;
-    return `At position ${this.input.cursor}: expected ${this.expected}, saw ${this.input.atEnd() ? "EOF" : quote(this.input.get())}`;
+    return this.formatError();
+  }
+
+  print(colours) {
+    const c = new chalk.constructor({ enabled: Boolean(colours) });
+    const { line, row, column } = stringOps.findLine(
+      this.input.buffer,
+      this.input.cursor
+    );
+    const header = c.yellow(`At line ${row}, column ${column}:\n\n`);
+    const arrowhead = c.cyan(`\n${stringOps.repeat(column, " ")}^\n`);
+    const arrowstem = c.cyan(`${stringOps.repeat(column, " ")}|\n`);
+    const msg = c.cyan.bold("ERROR: ") + this.formatError(colours);
+    if (line.trim().length) {
+      return header + line + arrowhead + arrowstem + msg;
+    }
+    return header + msg;
   }
 }
 
-export class ParseResult {
+class ParseResult {
   /**
    * A {@link ParseResult} holds the result of a successful parse operation. It contains
    * the value which was parsed, a {@link Stream} pointing to the remaining unconsumed
@@ -119,12 +203,25 @@ export class ParseResult {
    * @arg {string} matched - The exact string this parser consumed.
    */
   constructor(value, next, start, matched) {
+    this.name = "Eulalie.ParseResult";
     this.value = value;
     this.next = next;
     this.start = start;
     this.matched = matched;
     Object.freeze(this);
   }
+}
+
+export function isStream(o) {
+  return o.hasOwnProperty("name") &amp;&amp; o.name === "Eulalie.ParseStream";
+}
+
+export function isError(o) {
+  return o.hasOwnProperty("name") &amp;&amp; o.name === "Eulalie.ParseError";
+}
+
+export function isResult(o) {
+  return o.hasOwnProperty("name") &amp;&amp; o.name === "Eulalie.ParseResult";
 }
 
 export function error(input, message) {
@@ -143,8 +240,6 @@ export function stream(s) {
   return new Stream(s);
 }
 
-
-
 /**
  * Perform a parse operation.
  * @arg {Parser} parser - The parser to run.
@@ -157,13 +252,29 @@ export function parse(parser, input) {
   return parser(input);
 }
 
-
-
-function badValue(v) {
-  return new Error(`Parser returned unexpected value: ${v}`);
+/**
+ * Takes a parser and returns a function which takes a string as its only
+ * argument, runs it through the provided parser, and either returns the value
+ * of the {@link ParseResult} object it returns, or throws the
+ * {@link ParseError} object if it returns an error.
+ */
+export function makeParser(p) {
+  return function(s) {
+    const r = parse(p, stream(s));
+    if (isError(r)) {
+      throw r;
+    } else if (isResult(r)) {
+      return r.value;
+    } else {
+      throw new Error(`parser returned non-ParseResult|Error: ${r}`);
+    }
+  };
 }
 
-
+function badValue(v) {
+  const o = require("util").inspect(v);
+  return new Error(`Parser returned unexpected value: ${o}`);
+}
 
 /**
  * The {@link seq} combinator takes a parser, and a function which will receive the
@@ -182,19 +293,23 @@ function badValue(v) {
  */
 export function seq(parser, callback) {
   if (isGen(parser)) {
-    return (start) => {
+    return start => {
       const iter = parser();
       const runP = (input, res) => {
         const next = iter.next(res !== undefined ? res : null);
         if (next.done) {
-          return result(next.value, input, res.start, res.matched);
+          return result(next.value, input, start, res.matched);
         }
         const out = parse(next.value, input);
-        if (out instanceof ParseResult) {
-          const matched = res === undefined ? out.matched : res.matched + out.matched;
-          return runP(out.next, result(out.value, out.next, start, matched));
+        if (isResult(out)) {
+          const matched =
+            res === undefined ? out.matched : res.matched + out.matched;
+          return runP(
+            out.next,
+            result(out.value, out.next, out.start, matched)
+          );
         }
-        if (out instanceof ParseError) {
+        if (isError(out)) {
           return out;
         }
         throw badValue(out);
@@ -203,19 +318,19 @@ export function seq(parser, callback) {
     };
   }
 
-  return (input) => {
+  return input => {
     const out = parse(parser, input);
-    if (out instanceof ParseResult) {
+    if (isResult(out)) {
       const next = parse(callback(out.value, input), out.next);
-      if (next instanceof ParseResult) {
+      if (isResult(next)) {
         return result(next.value, next.next, input, out.matched + next.matched);
       }
-      if (next instanceof ParseError) {
+      if (isError(next)) {
         return next;
       }
       throw badValue(next);
     }
-    if (out instanceof ParseError) {
+    if (isError(out)) {
       return out;
     }
     throw badValue(out);
@@ -238,25 +353,57 @@ export function either(p1, p2) {
     return either(p1());
   }
   if (isIteratorLike(p1)) {
-    const {value, done} = p1.next();
+    const { value, done } = p1.next();
     return done ? fail : either(value, either(p1));
   }
   if (isIterable(p1)) {
     return either(p1[Symbol.iterator]());
   }
-  return (input) => {
+  return input => {
     const r1 = parse(p1, input);
-    if (r1 instanceof ParseResult) {
+    if (isResult(r1)) {
       return r1;
     }
-    if (r1 instanceof ParseError) {
+    if (isError(r1)) {
+      if (r1.fatal) {
+        return r1;
+      }
       const r2 = parse(p2, input);
-      if (r2 instanceof ParseResult || r2 instanceof ParseError) {
+      if (isResult(r2)) {
         return r2;
+      }
+      if (isError(r2)) {
+        return r1.extend(r2);
       }
       throw badValue(r2);
     }
     throw badValue(r1);
+  };
+}
+
+/**
+ * The {@cut} parser combinator takes a parser and produces a new parser
+ * for which all errors are fatal, causing {@either} blocks to stop trying
+ * further parsers and return immediately with the fatal error.
+ *
+ * Two shorthands are available: first, you can pass it a generator function
+ * instead of a parser, which will be turned into a parser using {@link seq}.
+ * You can also give two arguments, which will generate a parser which
+ * sequences the two parsers (or generators) together, with the cut applied
+ * only to the second parser. If you need to capture the output of the first
+ * parser, you'll need to build the sequence manually; this shorthand is only
+ * helpful for situations where the first parser checks for a constant.
+ * @arg {Parser} parser
+ * @arg {?Parser} parser2
+ */
+export function cut(parser, parser2) {
+  const p = isGen(parser) ? seq(parser) : parser;
+  if (parser2 !== undefined) {
+    return seq(p, () => cut(parser2));
+  }
+  return input => {
+    const r = parse(p, input);
+    return isError(r) ? r.escalate() : r;
   };
 }
 
@@ -271,14 +418,24 @@ export function either(p1, p2) {
  *                          {@link ParseResult} here. This is usually not necessary.
  */
 export function unit(value, matched = "") {
-  return (input) => result(value, input, input, matched);
+  return input => result(value, input, input, matched);
 }
 
 /**
- * The {@link fail} parser will just immediately without consuming any input.
+ * The {@link fail} parser will just fail immediately without consuming any
+ * input.
  */
 export function fail(input) {
   return error(input);
+}
+
+/**
+ * The {@link failAt} parser will fail immediately without consuming any input,
+ * but will report the failure at the provided input position.
+ * @arg {Stream} input
+ */
+export function failAt(input) {
+  return _ => error(input);
 }
 
 /**
@@ -289,7 +446,7 @@ export function fail(input) {
 export function expected(parser, message) {
   return function(input) {
     const result = parse(parser, input);
-    return result instanceof ParseError ? error(result.input, message) : result;
+    return isError(result) ? result.withExpected(message) : result;
   };
 }
 
@@ -298,7 +455,9 @@ export function expected(parser, message) {
  * returns it as its result.
  */
 export function item(input) {
-  return input.atEnd() ? error(input) : result(input.get(), input.next(), input, input.get());
+  return input.atEnd()
+    ? error(input)
+    : result(input.get(), input.next(), input, input.get());
 }
 
 /**
@@ -308,7 +467,10 @@ export function item(input) {
  * @arg {function(string): boolean} predicate
  */
 export function sat(predicate) {
-  return seq(item, (value, start) => predicate(value) ? unit(value) : () => fail(start));
+  return seq(
+    item,
+    (value, start) => (predicate(value) ? unit(value) : () => fail(start))
+  );
 }
 
 /**
@@ -321,7 +483,13 @@ export function maybe(parser) {
   return either(parser, unit(""));
 }
 
-
+/**
+ * Matches the end of the stream.
+ */
+export const eof = expected(
+  input => (input.atEnd() ? result(null, input, input, "") : error(input)),
+  "end of file"
+);
 
 /**
  * The {@link manyA} combinator takes a parser, and returns a new parser which will
@@ -331,7 +499,7 @@ export function maybe(parser) {
  * @arg {Parser} parser
  */
 export function manyA(parser) {
-  return either(many1(parser), unit([]));
+  return either(many1A(parser), unit([]));
 }
 
 /**
@@ -341,10 +509,8 @@ export function manyA(parser) {
  * @arg {Parser} parser
  */
 export function many1A(parser) {
-  return seq(parser, (head) => seq(many(parser), (tail) => unit([head, ...tail])));
+  return seq(parser, head => seq(manyA(parser), tail => unit([head, ...tail])));
 }
-
-
 
 /**
  * The {@link many} combinator takes a parser which must return a string value, and
@@ -363,10 +529,8 @@ export function many(parser) {
  * @arg {Parser} parser
  */
 export function many1(parser) {
-  return seq(parser, (head) => seq(many(parser), (tail) => unit(head + tail)));
+  return seq(parser, head => seq(many(parser), tail => unit(head + tail)));
 }
-
-
 
 /**
  * The {@link char} parser constructor returns a parser which matches only the specified
@@ -374,7 +538,7 @@ export function many1(parser) {
  * @arg {string} c - The character this parser will match.
  */
 export function char(c) {
-  return expected(sat((i) => i === c), `the character "${c}"`);
+  return expected(sat(i => i === c), `"${c}"`);
 }
 
 /**
@@ -383,7 +547,7 @@ export function char(c) {
  * @arg {string} c - The character this parser won't match.
  */
 export function notChar(c) {
-  return expected(sat((i) => i !== c), `anything but the character "${c}"`);
+  return expected(sat(i => i !== c), `anything but "${c}"`);
 }
 
 /**
@@ -401,22 +565,20 @@ export function string(s) {
   return expected(stringP(s), `"${s}"`);
 }
 
-
-
 /** Returns true if `c` is a digit. */
-export const isDigit = (c) => /^\d$/.test(c);
+export const isDigit = c => /^\d$/.test(c);
 /** Returns true if `c` is whitespace. */
-export const isSpace = (c) => /^\s$/.test(c);
+export const isSpace = c => /^\s$/.test(c);
 /** Returns true if `c` is a letter, a digit or the underscore character. */
-export const isAlphanum = (c) => /^\w$/.test(c);
+export const isAlphanum = c => /^\w$/.test(c);
 /** Returns true if `c` is an ASCII letter. */
-export const isLetter = (c) => /^[a-zA-Z]$/.test(c);
+export const isLetter = c => /^[a-zA-Z]$/.test(c);
 /** Returns true if `c` is an upper case ASCII letter. */
-export const isUpper = (c) => isLetter(c) &amp;&amp; c == c.toUpperCase();
+export const isUpper = c => isLetter(c) &amp;&amp; c == c.toUpperCase();
 /** Returns true if `c` is a lower case ASCII letter. */
-export const isLower = (c) => isLetter(c) &amp;&amp; c == c.toLowerCase();
+export const isLower = c => isLetter(c) &amp;&amp; c == c.toLowerCase();
 /** Takes a predicate function and returns its inverse. */
-export const not = (f) => (c) => !f(c);
+export const not = f => c => !f(c);
 
 /** Parses a single digit using {@link isDigit} as a predicate. */
 export const digit = expected(sat(isDigit), "a digit");
@@ -434,15 +596,27 @@ export const lower = expected(sat(isLower), "a lower case letter");
 /** Parses a single character that is not a digit using {@link isDigit} as a predicate. */
 export const notDigit = expected(sat(not(isDigit)), "a non-digit");
 /** Parses a single non-whitespace character using {@link isSpace} as a predicate. */
-export const notSpace = expected(sat(not(isSpace)), "a non-whitespace character");
+export const notSpace = expected(
+  sat(not(isSpace)),
+  "a non-whitespace character"
+);
 /** Parses a single non-word character using {@link isAlphanum} as a predicate. */
-export const notAlphanum = expected(sat(not(isAlphanum)), "a non-word character");
+export const notAlphanum = expected(
+  sat(not(isAlphanum)),
+  "a non-word character"
+);
 /** Parses a single non-letter using {@link isLetter} as a predicate. */
 export const notLetter = expected(sat(not(isLetter)), "a non-letter");
 /** Parses a single character that is not an upper case letter using {@link isUpper} as a predicate. */
-export const notUpper = expected(sat(not(isUpper)), "anything but an upper case letter");
+export const notUpper = expected(
+  sat(not(isUpper)),
+  "anything but an upper case letter"
+);
 /** Parses a single character that is not a lower case letter using {@link isLower} as a predicate. */
-export const notLower = expected(sat(not(isLower)), "anything but a lower case letter");
+export const notLower = expected(
+  sat(not(isLower)),
+  "anything but a lower case letter"
+);
 
 /** Parses zero or more whitespace characters. */
 export const spaces = many(space);
@@ -452,9 +626,10 @@ export const spaces1 = expected(many1(space), "whitespace");
 /** Parses zero or more non-whitespace characters. */
 export const notSpaces = many(sat(not(isSpace)));
 /** Parses one or more non-whitespace characters. */
-export const notSpaces1 = expected(many1(sat(not(isSpace))), "one or more non-whitespace characters");
-
-
+export const notSpaces1 = expected(
+  many1(sat(not(isSpace))),
+  "one or more non-whitespace characters"
+);
 
 /**
  * Given a list of parsers which return string values, builds a parser which
@@ -462,51 +637,56 @@ export const notSpaces1 = expected(many1(sat(not(isSpace))), "one or more non-wh
  * the sequence.
  */
 export function str([head, ...tail]) {
-  return tail.length ? seq(head, (v) => seq(str(tail), (vs) => unit(v + vs))) : head;
+  return tail.length
+    ? seq(head, v => seq(str(tail), vs => unit(v + vs)))
+    : head;
 }
 
-
-
 /** Parses a positive or negative integer. */
-export const int = expected(seq(function*() {
-  const r = yield str([
-    maybe(char("-")),
-    many1(digit)
-  ]);
-  const n = parseInt(r.value, 10);
-  if (isNaN(n)) {
-    yield fail;
-  }
-  return n;
-}), "an integer");
+export const int = expected(
+  seq(function*() {
+    const r = yield str([maybe(char("-")), many1(digit)]);
+    const n = parseInt(r.value, 10);
+    if (isNaN(n)) {
+      yield fail;
+    }
+    return n;
+  }),
+  "an integer"
+);
 
 /** Parses a positive or negative floating point number. */
-export const float = expected(seq(function*() {
-  const r = yield str([
-    maybe(char("-")),
-    many(digit),
-    maybe(str([char("."), many1(digit)]))
-  ]);
-  const n = parseFloat(r.value);
-  if (isNaN(n)) {
-    yield fail;
-  }
-  return n;
-}), "a number");
+export const float = expected(
+  seq(function*() {
+    const r = yield str([
+      maybe(char("-")),
+      many(digit),
+      maybe(str([char("."), many1(digit)]))
+    ]);
+    const n = parseFloat(r.value);
+    if (isNaN(n)) {
+      yield fail;
+    }
+    return n;
+  }),
+  "a number"
+);
 
 /** Parses a double quoted string, with support for escaping double quotes
  * inside it, and returns the inner string. Does not perform any other form
  * of string escaping.
  */
-export const quotedString = expected(seq(function*() {
-  yield char("\"");
-  const {value: s} = yield many(either(
-    seq(char("\\"), () => item),
-    notChar("\"")
-  ));
-  yield char("\"");
-  return s;
-}), "a quoted string");
+export const quotedString = expected(
+  seq(function*() {
+    yield char('"');
+    const { value: s } = yield many(
+      either(seq(char("\\"), () => item), notChar('"'))
+    );
+    yield char('"');
+    return s;
+  }),
+  "a quoted string"
+);
 </code></pre>
         </article>
     </section>
@@ -517,13 +697,13 @@ export const quotedString = expected(seq(function*() {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ParseError.html">ParseError</a></li><li><a href="ParseResult.html">ParseResult</a></li><li><a href="Stream.html">Stream</a></li></ul><h3>Global</h3><ul><li><a href="global.html#alphanum">alphanum</a></li><li><a href="global.html#char">char</a></li><li><a href="global.html#digit">digit</a></li><li><a href="global.html#either">either</a></li><li><a href="global.html#expected">expected</a></li><li><a href="global.html#fail">fail</a></li><li><a href="global.html#float">float</a></li><li><a href="global.html#int">int</a></li><li><a href="global.html#isAlphanum">isAlphanum</a></li><li><a href="global.html#isDigit">isDigit</a></li><li><a href="global.html#isLetter">isLetter</a></li><li><a href="global.html#isLower">isLower</a></li><li><a href="global.html#isSpace">isSpace</a></li><li><a href="global.html#isUpper">isUpper</a></li><li><a href="global.html#item">item</a></li><li><a href="global.html#letter">letter</a></li><li><a href="global.html#lower">lower</a></li><li><a href="global.html#many">many</a></li><li><a href="global.html#many1">many1</a></li><li><a href="global.html#many1A">many1A</a></li><li><a href="global.html#manyA">manyA</a></li><li><a href="global.html#maybe">maybe</a></li><li><a href="global.html#not">not</a></li><li><a href="global.html#notAlphanum">notAlphanum</a></li><li><a href="global.html#notChar">notChar</a></li><li><a href="global.html#notDigit">notDigit</a></li><li><a href="global.html#notLetter">notLetter</a></li><li><a href="global.html#notLower">notLower</a></li><li><a href="global.html#notSpace">notSpace</a></li><li><a href="global.html#notSpaces">notSpaces</a></li><li><a href="global.html#notSpaces1">notSpaces1</a></li><li><a href="global.html#notUpper">notUpper</a></li><li><a href="global.html#parse">parse</a></li><li><a href="global.html#quotedString">quotedString</a></li><li><a href="global.html#sat">sat</a></li><li><a href="global.html#seq">seq</a></li><li><a href="global.html#space">space</a></li><li><a href="global.html#spaces">spaces</a></li><li><a href="global.html#spaces1">spaces1</a></li><li><a href="global.html#str">str</a></li><li><a href="global.html#stream">stream</a></li><li><a href="global.html#string">string</a></li><li><a href="global.html#unit">unit</a></li><li><a href="global.html#upper">upper</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ParseError.html">ParseError</a></li><li><a href="ParseResult.html">ParseResult</a></li><li><a href="Stream.html">Stream</a></li></ul><h3>Global</h3><ul><li><a href="global.html#alphanum">alphanum</a></li><li><a href="global.html#char">char</a></li><li><a href="global.html#cut">cut</a></li><li><a href="global.html#digit">digit</a></li><li><a href="global.html#either">either</a></li><li><a href="global.html#eof">eof</a></li><li><a href="global.html#expected">expected</a></li><li><a href="global.html#fail">fail</a></li><li><a href="global.html#failAt">failAt</a></li><li><a href="global.html#findLine">findLine</a></li><li><a href="global.html#float">float</a></li><li><a href="global.html#int">int</a></li><li><a href="global.html#isAlphanum">isAlphanum</a></li><li><a href="global.html#isDigit">isDigit</a></li><li><a href="global.html#isLetter">isLetter</a></li><li><a href="global.html#isLower">isLower</a></li><li><a href="global.html#isSpace">isSpace</a></li><li><a href="global.html#isUpper">isUpper</a></li><li><a href="global.html#item">item</a></li><li><a href="global.html#letter">letter</a></li><li><a href="global.html#lower">lower</a></li><li><a href="global.html#makeParser">makeParser</a></li><li><a href="global.html#many">many</a></li><li><a href="global.html#many1">many1</a></li><li><a href="global.html#many1A">many1A</a></li><li><a href="global.html#manyA">manyA</a></li><li><a href="global.html#maybe">maybe</a></li><li><a href="global.html#nextOnLine">nextOnLine</a></li><li><a href="global.html#not">not</a></li><li><a href="global.html#notAlphanum">notAlphanum</a></li><li><a href="global.html#notChar">notChar</a></li><li><a href="global.html#notDigit">notDigit</a></li><li><a href="global.html#notLetter">notLetter</a></li><li><a href="global.html#notLower">notLower</a></li><li><a href="global.html#notSpace">notSpace</a></li><li><a href="global.html#notSpaces">notSpaces</a></li><li><a href="global.html#notSpaces1">notSpaces1</a></li><li><a href="global.html#notUpper">notUpper</a></li><li><a href="global.html#parse">parse</a></li><li><a href="global.html#quotedString">quotedString</a></li><li><a href="global.html#repeat">repeat</a></li><li><a href="global.html#sat">sat</a></li><li><a href="global.html#seq">seq</a></li><li><a href="global.html#space">space</a></li><li><a href="global.html#spaces">spaces</a></li><li><a href="global.html#spaces1">spaces1</a></li><li><a href="global.html#str">str</a></li><li><a href="global.html#stream">stream</a></li><li><a href="global.html#string">string</a></li><li><a href="global.html#unit">unit</a></li><li><a href="global.html#upper">upper</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0-dev</a> on Sat Sep 05 2015 18:38:36 GMT+0100 (BST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.0-dev</a> on Wed Feb 14 2018 15:23:13 GMT+0000 (GMT)
 </footer>
 
 <script> prettyPrint(); </script>
